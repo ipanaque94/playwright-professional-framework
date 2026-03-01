@@ -1,0 +1,39 @@
+
+# Node
+node_modules/
+package-lock.json
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Reports
+reports/
+logs/
+
+# Screenshots and videos
+screenshots/
+videos/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.png
+*.webm
+*.zip
+
+# Keep snapshots
+!tests/**/*-snapshots/**/*.png
