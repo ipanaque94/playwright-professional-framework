@@ -1,35 +1,19 @@
 pipeline {
     agent any
-    
+
     environment {
-    NODE_VERSION = '18'
-    TEST_ENV = 'QA'
-    PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}\\ms-playwright"
-    NPM_CONFIG_PREFIX = "${WORKSPACE}\\.npm-global"
-    PATH = "${WORKSPACE}\\.npm-global\\bin;${env.PATH}"
+        NODE_VERSION = '18'
+        TEST_ENV = 'QA'
+        PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}\\ms-playwright"
+        NPM_CONFIG_PREFIX = "${WORKSPACE}\\.npm-global"
+        PATH = "${WORKSPACE}\\.npm-global\\bin;${env.PATH}"
     }
 
     parameters {
-        choice(
-            name: 'BROWSER',
-            choices: ['chromium-ui', 'firefox-ui', 'webkit-ui', 'api-tests', 'all'],
-            description: 'Selecciona el navegador o tipo de test'
-        )
-        choice(
-            name: 'TEST_SUITE',
-            choices: ['all', 'ui', 'api', 'e2e', 'integration', 'contract', 'performance', 'security', 'accessibility', 'visual'],
-            description: 'Selecciona la suite de tests'
-        )
-        booleanParam(
-            name: 'HEADED',
-            defaultValue: false,
-            description: 'Ejecutar tests con interfaz gráfica'
-        )
-        booleanParam(
-            name: 'UPDATE_SNAPSHOTS',
-            defaultValue: false,
-            description: 'Actualizar screenshots base'
-        )
+        choice(name: 'BROWSER', choices: ['chromium-ui', 'firefox-ui', 'webkit-ui', 'api-tests', 'all'], description: 'Selecciona el navegador o tipo de test')
+        choice(name: 'TEST_SUITE', choices: ['all', 'ui', 'api', 'e2e', 'integration', 'contract', 'performance', 'security', 'accessibility', 'visual'], description: 'Selecciona la suite de tests')
+        booleanParam(name: 'HEADED', defaultValue: false, description: 'Ejecutar tests con interfaz gráfica')
+        booleanParam(name: 'UPDATE_SNAPSHOTS', defaultValue: false, description: 'Actualizar screenshots base')
     }
 
     triggers {
@@ -37,15 +21,15 @@ pipeline {
         githubPush()
     }
 
-    stage('📦 Prepare NPM') {
-        steps {
-            bat '''
-                 if not exist "%WORKSPACE%\\.npm-global" mkdir "%WORKSPACE%\\.npm-global"
-            '''
-          }
-    }
-
     stages {
+        stage('📦 Prepare NPM') {
+            steps {
+                bat '''
+                    if not exist "%WORKSPACE%\\.npm-global" mkdir "%WORKSPACE%\\.npm-global"
+                '''
+            }
+        }
+
         stage('🔍 Checkout') {
             steps {
                 echo '=== Obteniendo código ==='
@@ -156,7 +140,6 @@ pipeline {
         
         success {
             echo '✅ ¡Pipeline ejecutado exitosamente!'
-            
             script {
                 echo "Tests completados en: ${currentBuild.durationString}"
             }
@@ -164,7 +147,6 @@ pipeline {
         
         failure {
             echo '❌ El pipeline falló'
-            
             script {
                 if (env.TEST_RESULT != '0') {
                     echo 'Los tests fallaron. Revisa el reporte HTML.'
