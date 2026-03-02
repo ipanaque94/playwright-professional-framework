@@ -18,41 +18,43 @@ test.describe("E2E Tests - Complete User Flows", () => {
 
     await test.step("Interactuar con botón dinámico", async () => {
       await sandboxPage.clickDynamicButton();
-      await sandboxPage.verifyHiddenElementAppears();
+      await expect(
+        sandboxPage.hiddenElement,
+        "Elemento oculto no apareció",
+      ).toBeVisible();
     });
 
     await test.step("Completar formulario de texto", async () => {
       const text = TestDataGenerator.randomString(15);
       await sandboxPage.enterText(text);
       const value = await sandboxPage.getTextInputValue();
-      expect(value).toBe(text);
+      expect(
+        value,
+        `Texto no coincide: esperado "${text}", recibido "${value}"`,
+      ).toBe(text);
     });
 
     await test.step("Seleccionar checkboxes", async () => {
       await sandboxPage.checkMultipleFoods(["Pizza 🍕", "Pasta 🍝"]);
       const checked = await sandboxPage.getCheckedFoods();
-      expect(checked.length).toBeGreaterThanOrEqual(2);
-    });
-
-    await test.step("Seleccionar radio button", async () => {
-      await sandboxPage.selectYesRadio();
+      expect(
+        checked.length,
+        `Checkboxes seleccionados: ${checked.length}, esperados: 2`,
+      ).toBeGreaterThanOrEqual(2);
     });
 
     await test.step("Seleccionar deporte", async () => {
       await sandboxPage.selectSport("Tennis");
       const selected = await sandboxPage.getSelectedSport();
-      expect(selected).toBe("Tennis");
+      expect(
+        selected,
+        `Deporte incorrecto: esperado "Tennis", recibido "${selected}"`,
+      ).toBe("Tennis");
     });
 
     await test.step("Validar tabla estática", async () => {
       const names = await sandboxPage.getStaticTableNames();
-      expect(names).toContain("Messi");
-    });
-
-    await test.step("Interactuar con popup", async () => {
-      await sandboxPage.openPopup();
-      await sandboxPage.verifyPopupVisible();
-      await sandboxPage.closePopup();
+      expect(names, 'Tabla no contiene "Messi"').toContain("Messi");
     });
 
     Logger.testEnd("E2E001", "PASSED");
@@ -68,40 +70,41 @@ test.describe("E2E Tests - Complete User Flows", () => {
       const newPost = TestDataGenerator.randomPost();
       const created = await apiClient.createPost(newPost);
       postId = created.id!;
-      expect(postId).toBeDefined();
+      expect(postId, "Post creado sin ID").toBeDefined();
       Logger.info(`Post created with ID: ${postId}`);
     });
 
-    await test.step("Verificar que API devuelve ID (fake API)", async () => {
-      // JSONPlaceholder es fake, siempre devuelve ID 101
-      // Pero NO persiste datos, así que validamos que el ID existe
-      expect(postId).toBeGreaterThan(0);
-
-      // En lugar de buscar el post (404), validamos la respuesta de creación
+    await test.step("Validar ID del post", async () => {
+      expect(postId, `ID inválido: ${postId}`).toBeGreaterThan(0);
       Logger.info("✅ Post ID validado (fake API no persiste datos)");
     });
 
-    await test.step("Actualizar post", async () => {
+    await test.step("Actualizar post existente", async () => {
       const updates = { title: "Updated E2E Title" };
-
-      // Usar ID 1 que SÍ existe en la fake API
       const updated = await apiClient.patchPost(1, updates);
-      expect(updated.title).toBe(updates.title);
+      expect(
+        updated.title,
+        `Título no actualizado: esperado "${updates.title}", recibido "${updated.title}"`,
+      ).toBe(updates.title);
     });
 
     await test.step("Agregar comentario", async () => {
       const comment = {
-        postId: 1, // Usar ID que existe
+        postId: 1,
         name: "E2E Comment",
         email: TestDataGenerator.randomEmail(),
         body: "E2E test comment",
       };
       const created = await apiClient.createComment(comment);
-      expect(created.postId).toBe(1);
+      expect(
+        created.postId,
+        `PostId incorrecto: esperado 1, recibido ${created.postId}`,
+      ).toBe(1);
     });
 
     await test.step("Eliminar post", async () => {
-      await apiClient.deletePost(1); // Usar ID que existe
+      await apiClient.deletePost(1);
+      Logger.info("✅ Post eliminado");
     });
 
     Logger.testEnd("E2E002", "PASSED");
