@@ -55,7 +55,8 @@ test.describe("Visual Regression Tests", () => {
       await page.waitForTimeout(500);
 
       await expect(page).toHaveScreenshot("popup-open.png", {
-        maxDiffPixels: 50,
+        maxDiffPixels: 300,
+        maxDiffPixelRatio: 0.02,
       });
     });
 

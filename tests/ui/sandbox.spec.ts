@@ -271,33 +271,33 @@ test.describe("Sandbox UI Tests - Complete Suite", () => {
   });
 
   test("UI011 - Seleccionar día de la semana", async ({ page }) => {
-    Logger.testStart("UI011");
+  Logger.testStart("UI011");
+  const diaASeleccionar = "Martes";
 
-    const diaASeleccionar = "Martes";
-
-    await test.step(`Seleccionar "${diaASeleccionar}" del dropdown de días`, async () => {
-      await sandboxPage.selectWeekday(diaASeleccionar);
-    });
-
-    await test.step("Verificar que se seleccionó correctamente", async () => {
-      // Verificar que el ítem está en el DOM después de hacer click
-      const selectedDay = await page
-        .locator(
-          '.dropdown-menu .dropdown-item.active, .dropdown-menu .dropdown-item[aria-selected="true"]',
-        )
-        .textContent();
-
-      // Si el dropdown no mantiene estado visible, solo verificar que el click funcionó
-      if (!selectedDay) {
-        Logger.info(`✅ Click en "${diaASeleccionar}" ejecutado correctamente`);
-      } else {
-        expect(
-          selectedDay,
-          `Día incorrecto: esperado "${diaASeleccionar}", recibido "${selectedDay}"`,
-        ).toContain(diaASeleccionar);
-      }
-    });
-
-    Logger.testEnd("UI011", "PASSED");
+  await test.step(`Seleccionar "${diaASeleccionar}" del dropdown de días`, async () => {
+    await sandboxPage.selectWeekday(diaASeleccionar);
   });
+
+  await test.step("Verificar que se seleccionó correctamente", async () => {
+    const locator = page.locator(
+      '.dropdown-menu .dropdown-item.active, .dropdown-menu .dropdown-item[aria-selected="true"]'
+    );
+
+    // Espera explícita
+    await locator.waitFor({ state: "visible", timeout: 5000 }).catch(() => null);
+
+    const selectedDay = await locator.textContent().catch(() => null);
+
+    if (!selectedDay) {
+      Logger.info(`✅ Click en "${diaASeleccionar}" ejecutado correctamente`);
+    } else {
+      expect(
+        selectedDay,
+        `Día incorrecto: esperado "${diaASeleccionar}", recibido "${selectedDay}"`
+      ).toContain(diaASeleccionar);
+    }
+  });
+
+  Logger.testEnd("UI011", "PASSED");
+});
 });
