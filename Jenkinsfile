@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    environment {
+        PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}\\ms-playwright"
+    }
+    
     parameters {
         choice(
             name: 'BROWSER',
@@ -37,10 +41,13 @@ pipeline {
         
         stage('Install') {
             steps {
-                echo '=== Instalando dependencias ==='
+                echo '=== Instalando dependencias y navegadores ==='
                 bat '''
                     npm install
                     npx playwright install --with-deps
+                '''
+                bat '''
+                    dir %WORKSPACE%\\ms-playwright
                 '''
             }
         }
@@ -74,6 +81,15 @@ pipeline {
                     reportFiles: 'index.html',
                     reportName: 'Test Report'
                 ])
+                junit(
+                    testResults: 'reports/junit-results.xml',
+                    allowEmptyResults: true
+                )
+                archiveArtifacts(
+                    artifacts: 'test-results/**/*,screenshots/**/*,reports/**/*',
+                    allowEmptyArchive: true,
+                    fingerprint: true
+                )
             }
         }
     }
@@ -87,6 +103,9 @@ pipeline {
         }
         failure {
             echo '❌ Pipeline falló'
+        }
+        unstable {
+            echo '⚠️ Pipeline inestable (algunos tests fallaron)'
         }
     }
 }
