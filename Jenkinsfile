@@ -2,9 +2,11 @@ pipeline {
     agent any
     
     environment {
-        NODE_VERSION = '18'
-        TEST_ENV = 'QA'
-        PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}\\ms-playwright"
+    NODE_VERSION = '18'
+    TEST_ENV = 'QA'
+    PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}\\ms-playwright"
+    NPM_CONFIG_PREFIX = "${WORKSPACE}\\.npm-global"
+    PATH = "${WORKSPACE}\\.npm-global\\bin;${env.PATH}"
     }
 
     parameters {
@@ -35,6 +37,14 @@ pipeline {
         githubPush()
     }
 
+    stage('📦 Prepare NPM') {
+        steps {
+            bat '''
+                 if not exist "%WORKSPACE%\\.npm-global" mkdir "%WORKSPACE%\\.npm-global"
+            '''
+          }
+    }
+
     stages {
         stage('🔍 Checkout') {
             steps {
@@ -59,7 +69,7 @@ pipeline {
                 echo '=== Instalando navegadores de Playwright ==='
                 bat '''
                     set PLAYWRIGHT_BROWSERS_PATH=%WORKSPACE%\\ms-playwright
-                    npx playwright install
+                    npx --prefix %WORKSPACE%\\.npm-global playwright install
                 '''
             }
         }
