@@ -58,8 +58,8 @@ pipeline {
             steps {
                 echo '=== Instalando navegadores de Playwright ==='
                 bat '''
-                    set PLAYWRIGHT_BROWSERS_PATH=${WORKSPACE}\\ms-playwright
-                    npx playwright install --with-deps
+                    set PLAYWRIGHT_BROWSERS_PATH=%WORKSPACE%\\ms-playwright
+                    npx playwright install
                 '''
             }
         }
