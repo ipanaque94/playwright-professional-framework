@@ -18,7 +18,7 @@ pipeline {
             steps {
                 echo '=== Instalando dependencias ==='
                 bat '''
-                    npm ci
+                    npm install
                     npx playwright install --with-deps
                 '''
             }
