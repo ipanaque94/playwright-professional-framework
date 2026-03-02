@@ -2,8 +2,29 @@ pipeline {
     agent any
     
     parameters {
-        choice(name: 'BROWSER', choices: ['chromium-ui', 'firefox-ui', 'webkit-ui', 'all'], description: 'Navegador')
-        choice(name: 'TEST_SUITE', choices: ['all', 'ui', 'api', 'e2e'], description: 'Suite de tests')
+        choice(
+            name: 'BROWSER',
+            choices: [
+                'ui-tests',
+                'api-tests',
+                'e2e-tests',
+                'integration-tests',
+                'contract-tests',
+                'performance-tests',
+                'security-tests',
+                'accessibility-tests',
+                'visual-tests',
+                'all'
+            ],
+            description: 'Selecciona el proyecto de Playwright'
+        )
+        choice(
+            name: 'TEST_SUITE',
+            choices: ['all', 'ui', 'api', 'e2e', 'integration', 'contract', 'performance', 'security', 'accessibility', 'visual'],
+            description: 'Selecciona la suite de tests'
+        )
+        booleanParam(name: 'HEADED', defaultValue: false, description: 'Ejecutar con interfaz gráfica')
+        booleanParam(name: 'UPDATE_SNAPSHOTS', defaultValue: false, description: 'Actualizar screenshots base')
     }
 
     stages {
@@ -28,15 +49,14 @@ pipeline {
             steps {
                 echo '=== Ejecutando tests ==='
                 script {
-                    def testCommand = 'npx playwright test'
+                    def testCommand = buildTestCommand(
+                        params.TEST_SUITE,
+                        params.BROWSER,
+                        params.HEADED,
+                        params.UPDATE_SNAPSHOTS
+                    )
                     
-                    if (params.TEST_SUITE != 'all') {
-                        testCommand += " tests/${params.TEST_SUITE}/"
-                    }
-                    
-                    if (params.BROWSER != 'all') {
-                        testCommand += " --project=${params.BROWSER}"
-                    }
+                    echo "Comando: ${testCommand}"
                     
                     bat(script: testCommand, returnStatus: true)
                 }
@@ -69,4 +89,26 @@ pipeline {
             echo '❌ Pipeline falló'
         }
     }
+}
+
+def buildTestCommand(testSuite, browser, headed, updateSnapshots) {
+    def command = 'npx playwright test'
+
+    if (testSuite != 'all') {
+        command += " tests/${testSuite}/"
+    }
+
+    if (browser != 'all') {
+        command += " --project=${browser}"
+    }
+
+    if (headed) {
+        command += ' --headed'
+    }
+
+    if (updateSnapshots) {
+        command += ' --update-snapshots'
+    }
+
+    return command
 }
