@@ -135,8 +135,10 @@ export class SandboxPage extends BasePage {
 
   // WEEKDAY DROPDOWN SECTION
 
+  // pages/sandbox/SandboxPage.ts
+
   async selectWeekday(day: string): Promise<void> {
-    await this.weekdayDropdown.click();
+    await this.page.getByRole("button", { name: "Día de la semana" }).click();
     await this.page.getByRole("link", { name: day }).click();
   }
 

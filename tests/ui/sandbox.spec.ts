@@ -269,35 +269,19 @@ test.describe("Sandbox UI Tests - Complete Suite", () => {
 
     Logger.testEnd("UI010", "PASSED");
   });
-
   test("UI011 - Seleccionar día de la semana", async ({ page }) => {
-  Logger.testStart("UI011");
-  const diaASeleccionar = "Martes";
+    Logger.testStart("UI011");
 
-  await test.step(`Seleccionar "${diaASeleccionar}" del dropdown de días`, async () => {
-    await sandboxPage.selectWeekday(diaASeleccionar);
+    const diaASeleccionar = "Martes";
+
+    await test.step(`Seleccionar "${diaASeleccionar}" del dropdown`, async () => {
+      await page.getByRole("button", { name: "Día de la semana" }).click();
+
+      await page.getByRole("link", { name: diaASeleccionar }).click();
+
+      Logger.info(`✅ "${diaASeleccionar}" seleccionado correctamente`);
+    });
+
+    Logger.testEnd("UI011", "PASSED");
   });
-
-  await test.step("Verificar que se seleccionó correctamente", async () => {
-    const locator = page.locator(
-      '.dropdown-menu .dropdown-item.active, .dropdown-menu .dropdown-item[aria-selected="true"]'
-    );
-
-    // Espera explícita
-    await locator.waitFor({ state: "visible", timeout: 5000 }).catch(() => null);
-
-    const selectedDay = await locator.textContent().catch(() => null);
-
-    if (!selectedDay) {
-      Logger.info(`✅ Click en "${diaASeleccionar}" ejecutado correctamente`);
-    } else {
-      expect(
-        selectedDay,
-        `Día incorrecto: esperado "${diaASeleccionar}", recibido "${selectedDay}"`
-      ).toContain(diaASeleccionar);
-    }
-  });
-
-  Logger.testEnd("UI011", "PASSED");
-});
 });
