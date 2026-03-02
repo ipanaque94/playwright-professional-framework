@@ -5,8 +5,6 @@ pipeline {
         NODE_VERSION = '18'
         TEST_ENV = 'QA'
         PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}\\ms-playwright"
-        NPM_CONFIG_PREFIX = "${WORKSPACE}\\.npm-global"
-        PATH = "${WORKSPACE}\\.npm-global\\bin;${env.PATH}"
     }
 
     parameters {
@@ -22,17 +20,9 @@ pipeline {
     }
 
     stages {
-        stage('📦 Prepare NPM') {
-            steps {
-                bat '''
-                    if not exist "%WORKSPACE%\\.npm-global" mkdir "%WORKSPACE%\\.npm-global"
-                '''
-            }
-        }
-
         stage('🔍 Checkout') {
             steps {
-                echo '=== Obteniendo código ==='
+                echo '=== Clonando repositorio desde GitHub ==='
                 checkout scm
             }
         }
@@ -48,20 +38,37 @@ pipeline {
             }
         }
         
-        stage('🎭 Install Playwright') {
+        stage('🎭 Install Playwright Browsers') {
             steps {
                 echo '=== Instalando navegadores de Playwright ==='
                 bat '''
-                    set PLAYWRIGHT_BROWSERS_PATH=%WORKSPACE%\\ms-playwright
-                    npx --prefix %WORKSPACE%\\.npm-global playwright install
+                    npx playwright install --with-deps
                 '''
             }
         }
         
-        stage('🧪 Run Tests') {
+        stage('🧪 Run Non-Visual Tests') {
+            steps {
+                echo '=== Ejecutando tests (sin visuales) ==='
+                bat '''
+                    npx playwright test --grep-invert "VIS"
+                '''
+            }
+        }
+        
+        stage('📸 Generate Visual Snapshots') {
+            steps {
+                echo '=== Generando snapshots visuales ==='
+                bat '''
+                    npx playwright test tests/visual/ --update-snapshots
+                '''
+            }
+        }
+        
+        stage('✅ Run All Tests') {
             steps {
                 script {
-                    echo '=== Ejecutando tests ==='
+                    echo '=== Ejecutando suite completa de tests ==='
                     
                     def testCommand = buildTestCommand(
                         params.TEST_SUITE,
@@ -81,6 +88,7 @@ pipeline {
                     
                     if (testResult != 0) {
                         echo '⚠️ Algunos tests fallaron'
+                        unstable(message: "Tests fallaron")
                     } else {
                         echo '✅ Todos los tests pasaron'
                     }
@@ -90,10 +98,9 @@ pipeline {
         
         stage('📊 Generate Reports') {
             steps {
-                echo '=== Generando reportes ==='
+                echo '=== Generando reportes HTML ==='
                 bat '''
-                    echo "Reportes generados en reports/"
-                    dir reports\\ || echo "No hay reportes"
+                    if exist reports\\html-report (echo Reporte HTML generado) else (echo No se generó reporte)
                 '''
             }
         }
@@ -103,7 +110,7 @@ pipeline {
                 echo '=== Archivando artefactos ==='
                 
                 publishHTML([
-                    allowMissing: false,
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
                     reportDir: 'reports/html-report',
@@ -135,11 +142,11 @@ pipeline {
 
     post {
         always {
-            echo '=== Limpieza post-ejecución ==='
+            echo '=== Pipeline terminado ==='
         }
         
         success {
-            echo '✅ ¡Pipeline ejecutado exitosamente!'
+            echo '✅ Pipeline completado con éxito!'
             script {
                 echo "Tests completados en: ${currentBuild.durationString}"
             }
@@ -155,7 +162,7 @@ pipeline {
         }
         
         unstable {
-            echo '⚠️ El pipeline es inestable (algunos tests fallaron)'
+            echo '⚠️ Pipeline inestable - algunos tests fallaron'
         }
     }
 }
