@@ -1,40 +1,78 @@
-import { Page, Locator } from "@playwright/test";
+import { Page } from "@playwright/test";
+import { RadioButtonSelectors } from "./RadioButtonSelectors";
+import { WaitHelper } from "../../utils/ui/WaitHelper";
+import { ElementHelper } from "../../utils/ui/ElementHelper";
 import { Logger } from "../../utils/reporting/Logger";
 
-// Componente reutilizable para Radio Buttons
 export class RadioButtonComponent {
-  private page: Page;
+  private readonly waitHelper: WaitHelper;
+  private readonly elementHelper: ElementHelper;
 
-  constructor(page: Page) {
-    this.page = page;
+  constructor(private page: Page) {
+    this.waitHelper = new WaitHelper(page);
+    this.elementHelper = new ElementHelper(page);
   }
 
-  // Seleccionar radio button por nombre
+  async selectYes(): Promise<void> {
+    Logger.info("Seleccionando radio: SI");
+    const radio = this.page.getByRole(RadioButtonSelectors.YES.role, {
+      name: RadioButtonSelectors.YES.name,
+    });
+
+    await this.waitHelper.waitForVisible(radio);
+    await this.elementHelper.click(radio);
+  }
+
+  async selectNo(): Promise<void> {
+    Logger.info("Seleccionando radio: NO");
+    const radio = this.page.getByRole(RadioButtonSelectors.NO.role, {
+      name: RadioButtonSelectors.NO.name,
+    });
+
+    await this.waitHelper.waitForVisible(radio);
+    await this.elementHelper.click(radio);
+  }
+
   async select(name: string): Promise<void> {
-    Logger.info(`Selecting radio button: ${name}`);
+    Logger.info(`Seleccionando radio: "${name}"`);
+    const selector = RadioButtonSelectors.radio(name);
+    const radio = this.page.getByRole(selector.role, { name: selector.name });
 
-    const radio = this.page.getByRole("radio", { name });
-    await radio.click();
+    await this.waitHelper.waitForVisible(radio);
+    await this.elementHelper.click(radio);
   }
 
-  // Verificar si un radio button está seleccionado
   async isSelected(name: string): Promise<boolean> {
-    const radio = this.page.getByRole("radio", { name });
+    const selector = RadioButtonSelectors.radio(name);
+    const radio = this.page.getByRole(selector.role, { name: selector.name });
+
+    await this.waitHelper.waitForVisible(radio);
     return await radio.isChecked();
   }
 
-  // Obtener valor del radio button seleccionado, opcionalmente por grupo
-  async getSelectedOption(groupName?: string): Promise<string | null> {
-    const selector = groupName
-      ? `input[type="radio"][name="${groupName}"]:checked`
-      : 'input[type="radio"]:checked';
+  async getSelectedValue(): Promise<string | null> {
+    const radios = this.page.getByRole("radio");
+    const count = await radios.count();
 
-    const checkedRadio = this.page.locator(selector).first();
-
-    if ((await checkedRadio.count()) === 0) {
-      return null;
+    for (let i = 0; i < count; i++) {
+      const radio = radios.nth(i);
+      if (await radio.isChecked()) {
+        return await radio.getAttribute("aria-label");
+      }
     }
 
-    return await checkedRadio.getAttribute("value");
+    return null;
+  }
+
+  async isVisible(name: string): Promise<boolean> {
+    const selector = RadioButtonSelectors.radio(name);
+    const radio = this.page.getByRole(selector.role, { name: selector.name });
+    return await this.elementHelper.isVisible(radio);
+  }
+
+  async isEnabled(name: string): Promise<boolean> {
+    const selector = RadioButtonSelectors.radio(name);
+    const radio = this.page.getByRole(selector.role, { name: selector.name });
+    return await radio.isEnabled();
   }
 }

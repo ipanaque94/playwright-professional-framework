@@ -1,75 +1,39 @@
 import { Page, Locator } from "@playwright/test";
+import { FormSelectors } from "./FormSelectors";
+import { WaitHelper } from "../../utils/ui/WaitHelper";
 import { ElementHelper } from "../../utils/ui/ElementHelper";
 import { Logger } from "../../utils/reporting/Logger";
 
-// Componente profesional para formularios
 export class FormComponent {
-  private page: Page;
-  private elementHelper: ElementHelper;
+  private readonly textInput: Locator;
+  private readonly waitHelper: WaitHelper;
+  private readonly elementHelper: ElementHelper;
 
-  constructor(page: Page) {
-    this.page = page;
+  constructor(private page: Page) {
+    this.waitHelper = new WaitHelper(page);
     this.elementHelper = new ElementHelper(page);
-  }
 
-  // Llenar campo de texto por locator
-  async fillTextField(locator: Locator, value: string): Promise<void> {
-    await this.elementHelper.fill(locator, value);
-  }
-
-  // Llenar campo de texto por placeholder
-  async fillByPlaceholder(placeholder: string, value: string): Promise<void> {
-    const input = this.page.getByPlaceholder(placeholder);
-    await this.elementHelper.fill(input, value);
-  }
-
-  // Llenar campo de texto por label
-  async fillByLabel(label: string, value: string): Promise<void> {
-    const input = this.page.getByLabel(label);
-    await this.elementHelper.fill(input, value);
-  }
-
-  // Limpiar campo de texto
-  async clearField(locator: Locator): Promise<void> {
-    await this.elementHelper.clear(locator);
-  }
-
-  // Enviar formulario
-  async submit(): Promise<void> {
-    Logger.info("Submitting form");
-    const submitButton = this.page.locator(
-      'button[type="submit"], input[type="submit"]',
+    this.textInput = page.getByPlaceholder(
+      FormSelectors.TEXT_INPUT.placeholder,
     );
-    await this.elementHelper.click(submitButton);
   }
 
-  // Enviar formulario presionando Enter en un campo específico
-  async submitByEnter(locator: Locator): Promise<void> {
-    Logger.info("Submitting form via Enter key");
-    await locator.press("Enter");
+  async fill(text: string): Promise<void> {
+    Logger.info(`Llenando input con: "${text}"`);
+    await this.waitHelper.waitForVisible(this.textInput);
+    await this.elementHelper.fill(this.textInput, text);
   }
 
-  // Llenar formulario completo a partir de un objeto de datos
-  async fillForm(formData: Record<string, string>): Promise<void> {
-    Logger.info("Filling complete form", formData);
-
-    for (const [field, value] of Object.entries(formData)) {
-      const input = this.page.locator(`[name="${field}"], #${field}`);
-      await this.elementHelper.fill(input, value);
-    }
+  async clear(): Promise<void> {
+    Logger.info("Limpiando input");
+    await this.elementHelper.clear(this.textInput);
   }
 
-  // Obtener mensaje de error asociado a un campo
-  async getFieldError(fieldName: string): Promise<string> {
-    const error = this.page.locator(
-      `[name="${fieldName}"] ~ .error, #${fieldName}-error`,
-    );
-    return (await error.textContent()) || "";
+  async getValue(): Promise<string> {
+    return await this.elementHelper.getValue(this.textInput);
   }
 
-  // Verificar si el formulario tiene errores visibles
-  async hasErrors(): Promise<boolean> {
-    const errors = await this.page.locator(".error, .invalid-feedback").count();
-    return errors > 0;
+  getInput(): Locator {
+    return this.textInput;
   }
 }

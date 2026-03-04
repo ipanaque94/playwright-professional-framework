@@ -1,94 +1,96 @@
 import { Page, Locator, expect } from "@playwright/test";
+import { PopupSelectors } from "./PopupSelectors";
 import { WaitHelper } from "../../utils/ui/WaitHelper";
 import { ElementHelper } from "../../utils/ui/ElementHelper";
 import { Logger } from "../../utils/reporting/Logger";
 
-// Componente profesional para popups/modales
 export class PopupComponent {
-  private page: Page;
-  private waitHelper: WaitHelper;
-  private elementHelper: ElementHelper;
+  private readonly showButton: Locator;
+  private readonly closeButton: Locator;
+  private readonly content: Locator;
+  private readonly waitHelper: WaitHelper;
+  private readonly elementHelper: ElementHelper;
 
-  constructor(page: Page) {
-    this.page = page;
+  constructor(private page: Page) {
     this.waitHelper = new WaitHelper(page);
     this.elementHelper = new ElementHelper(page);
+
+    this.showButton = page.getByRole(PopupSelectors.SHOW_BUTTON.role, {
+      name: PopupSelectors.SHOW_BUTTON.name,
+    });
+    this.closeButton = page.getByRole(PopupSelectors.CLOSE_BUTTON.role, {
+      name: PopupSelectors.CLOSE_BUTTON.name,
+    });
+    this.content = page.getByRole(PopupSelectors.CONTENT.role);
   }
 
-  // Abrir popup mediante botón
-  async open(buttonText: string = "Mostrar popup"): Promise<void> {
-    Logger.info(`Opening popup via button: ${buttonText}`);
-    const button = this.page.getByRole("button", { name: buttonText });
-    await this.elementHelper.click(button);
+  async open(): Promise<void> {
+    Logger.info("Abriendo popup");
+    await this.elementHelper.click(this.showButton);
+    await this.waitHelper.waitForVisible(this.content);
     await this.waitHelper.waitForTimeout(500); // Animación
   }
 
-  // Cerrar popup mediante botón dentro del mismo
-  async close(buttonText: string = "Cerrar"): Promise<void> {
-    Logger.info(`Closing popup via button: ${buttonText}`);
-    const button = this.page.getByRole("button", { name: buttonText });
-    await this.elementHelper.click(button);
+  async close(): Promise<void> {
+    Logger.info("Cerrando popup");
+    await this.elementHelper.click(this.closeButton);
+    await this.waitHelper.waitForHidden(this.content);
   }
 
-  // Cerrar popup mediante botón X
   async closeByX(): Promise<void> {
-    Logger.info("Closing popup via X button");
+    Logger.info("Cerrando popup con botón X");
     const closeButton = this.page.locator(
       '[aria-label="Close"], .close, .modal-close',
     );
     await this.elementHelper.click(closeButton);
+    await this.waitHelper.waitForHidden(this.content);
   }
 
-  // Cerrar popup haciendo click fuera del mismo
   async closeByClickingOutside(): Promise<void> {
-    Logger.info("Closing popup by clicking outside");
+    Logger.info("Cerrando popup clickeando fuera");
     const backdrop = this.page.locator(".modal-backdrop, .overlay");
     await this.elementHelper.click(backdrop);
+    await this.waitHelper.waitForHidden(this.content);
   }
 
-  // Verificar que popup está visible, opcionalmente con texto específico
-  async verifyPopupVisible(popupText?: string): Promise<void> {
-    if (popupText) {
-      Logger.info(`Verifying popup with text: ${popupText}`);
-      const popup = this.page.getByText(popupText);
-      await expect(popup).toBeVisible();
+  async verifyVisible(text?: string): Promise<void> {
+    if (text) {
+      Logger.info(`Verificando popup con texto: ${text}`);
+      await expect(this.page.getByText(text)).toBeVisible();
     } else {
-      const modal = this.page.locator('.modal, .popup, [role="dialog"]');
-      await expect(modal).toBeVisible();
+      await expect(this.content).toBeVisible();
     }
   }
 
-  // Verificar que popup no está visible
-  async verifyPopupNotVisible(): Promise<void> {
-    Logger.info("Verifying popup is not visible");
-    const modal = this.page.locator('.modal, .popup, [role="dialog"]');
-    await expect(modal).not.toBeVisible();
+  async verifyNotVisible(): Promise<void> {
+    Logger.info("Verificando que popup no está visible");
+    await expect(this.content).not.toBeVisible();
   }
 
-  // Obtener texto del popup
-  async getPopupText(): Promise<string> {
-    const popup = this.page
-      .locator('.modal-body, .popup-content, [role="dialog"]')
-      .first();
-    await this.waitHelper.waitForElement(popup);
-    return (await popup.textContent()) || "";
+  async getText(): Promise<string> {
+    await this.waitHelper.waitForVisible(this.content);
+    return await this.elementHelper.getText(this.content);
   }
 
-  // Obtener título del popup
-  async getPopupTitle(): Promise<string> {
+  async getTitle(): Promise<string> {
     const title = this.page.locator(
-      '.modal-title, .popup-title, [role="dialog"] h1, [role="dialog"] h2',
+      '[role="dialog"] h1, [role="dialog"] h2, .modal-title, .popup-title',
     );
-    await this.waitHelper.waitForElement(title);
-    return (await title.textContent()) || "";
+    await this.waitHelper.waitForVisible(title);
+    return await this.elementHelper.getText(title);
   }
 
-  // Hacer click en botón dentro del popup
-  async clickButtonInPopup(buttonText: string): Promise<void> {
-    Logger.info(`Clicking button in popup: ${buttonText}`);
-    const button = this.page
-      .locator('[role="dialog"]')
-      .getByRole("button", { name: buttonText });
+  async clickButton(buttonText: string): Promise<void> {
+    Logger.info(`Clickeando botón en popup: ${buttonText}`);
+    const button = this.content.getByRole("button", { name: buttonText });
     await this.elementHelper.click(button);
+  }
+
+  async isVisible(): Promise<boolean> {
+    return await this.elementHelper.isVisible(this.content);
+  }
+
+  getContent(): Locator {
+    return this.content;
   }
 }

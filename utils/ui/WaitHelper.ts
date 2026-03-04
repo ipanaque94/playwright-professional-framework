@@ -9,6 +9,18 @@ export class WaitHelper {
   constructor(page: Page) {
     this.page = page;
   }
+  async waitForVisible(
+    locator: Locator,
+    timeout: number = 10000,
+  ): Promise<void> {
+    await locator.waitFor({ state: "visible", timeout });
+  }
+  async waitForHidden(
+    locator: Locator,
+    timeout: number = 10000,
+  ): Promise<void> {
+    await locator.waitFor({ state: "hidden", timeout });
+  }
 
   async waitForElement(
     locator: Locator,

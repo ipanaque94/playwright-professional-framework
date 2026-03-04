@@ -1,82 +1,152 @@
-import { Page, Locator, expect } from "@playwright/test";
-import { ElementHelper } from "../../utils/ui/ElementHelper";
+import { Locator, Page } from "@playwright/test";
+import { DropdownSelectors } from "./DropdownSelectors";
 import { WaitHelper } from "../../utils/ui/WaitHelper";
+import { ElementHelper } from "../../utils/ui/ElementHelper";
 import { Logger } from "../../utils/reporting/Logger";
 
-//Componente reutilizable para Dropdowns
 export class DropdownComponent {
-  private page: Page;
-  private elementHelper: ElementHelper;
-  private waitHelper: WaitHelper;
+  private readonly waitHelper: WaitHelper;
+  private readonly elementHelper: ElementHelper;
 
-  constructor(page: Page) {
-    this.page = page;
-    this.elementHelper = new ElementHelper(page);
+  constructor(private page: Page) {
     this.waitHelper = new WaitHelper(page);
+    this.elementHelper = new ElementHelper(page);
   }
 
-  //Seleccionar opción por valor
-  async selectByValue(dropdownLocator: Locator, value: string): Promise<void> {
-    Logger.info(`Selecting dropdown option by value: ${value}`);
-    await this.waitHelper.waitForElement(dropdownLocator);
-    await dropdownLocator.selectOption(value);
+  async selectSport(sport: string): Promise<void> {
+    Logger.info(`Seleccionando deporte: "${sport}"`);
+    const dropdown = this.page.getByRole(DropdownSelectors.SPORT.role, {
+      name: DropdownSelectors.SPORT.name,
+    });
+
+    await this.waitHelper.waitForVisible(dropdown);
+    await this.elementHelper.click(dropdown);
+
+    const option = DropdownSelectors.option(sport);
+    const sportLink = this.page.getByRole(option.role, { name: option.name });
+
+    await this.waitHelper.waitForVisible(sportLink);
+    await this.elementHelper.click(sportLink);
   }
 
-  //Seleccionar opción por texto visible
-  async selectByLabel(dropdownLocator: Locator, label: string): Promise<void> {
-    Logger.info(`Selecting dropdown option by label: ${label}`);
-    await this.waitHelper.waitForElement(dropdownLocator);
-    await dropdownLocator.selectOption({ label });
+  async selectWeekday(day: string): Promise<void> {
+    Logger.info(`Seleccionando día: "${day}"`);
+    const dropdown = this.page.getByRole(DropdownSelectors.WEEKDAY.role, {
+      name: DropdownSelectors.WEEKDAY.name,
+    });
+
+    await this.waitHelper.waitForVisible(dropdown);
+    await this.elementHelper.click(dropdown);
+
+    const option = DropdownSelectors.option(day);
+    const dayLink = this.page.getByRole(option.role, { name: option.name });
+
+    await this.waitHelper.waitForVisible(dayLink);
+    await this.elementHelper.click(dayLink);
   }
 
-  //Seleccionar opción por índice
-  async selectByIndex(dropdownLocator: Locator, index: number): Promise<void> {
-    Logger.info(`Selecting dropdown option by index: ${index}`);
-    await this.waitHelper.waitForElement(dropdownLocator);
-    await dropdownLocator.selectOption({ index });
+  async openSportDropdown(): Promise<void> {
+    Logger.info("Abriendo dropdown de deportes");
+    const dropdown = this.page.getByRole(DropdownSelectors.SPORT.role, {
+      name: DropdownSelectors.SPORT.name,
+    });
+    await this.elementHelper.click(dropdown);
   }
 
-  //Obtener valor de opción seleccionada
-  async getSelectedOption(dropdownLocator: Locator): Promise<string> {
-    await this.waitHelper.waitForElement(dropdownLocator);
-    return await dropdownLocator.inputValue();
+  async openWeekdayDropdown(): Promise<void> {
+    Logger.info("Abriendo dropdown de días");
+    const dropdown = this.page.getByRole(DropdownSelectors.WEEKDAY.role, {
+      name: DropdownSelectors.WEEKDAY.name,
+    });
+    await this.elementHelper.click(dropdown);
   }
 
-  //Obtener texto de opción seleccionada
-  async getSelectedText(dropdownLocator: Locator): Promise<string> {
-    await this.waitHelper.waitForElement(dropdownLocator);
-    const value = await dropdownLocator.inputValue();
-    const option = await dropdownLocator.locator(`option[value="${value}"]`);
-    return (await option.textContent()) || "";
+  async getSelectedSport(): Promise<string> {
+    const dropdown = this.page.getByRole(DropdownSelectors.SPORT.role, {
+      name: DropdownSelectors.SPORT.name,
+    });
+    return await this.elementHelper.getText(dropdown);
   }
 
-  //Obtener todas las opciones del dropdown
-  async getAllOptions(dropdownLocator: Locator): Promise<string[]> {
-    await this.waitHelper.waitForElement(dropdownLocator);
-    return await dropdownLocator.locator("option").allTextContents();
+  async getSelectedWeekday(): Promise<string> {
+    const dropdown = this.page.getByRole(DropdownSelectors.WEEKDAY.role, {
+      name: DropdownSelectors.WEEKDAY.name,
+    });
+    return await this.elementHelper.getText(dropdown);
   }
 
-  //Verificar si una opción existe
-  async verifyOptionExists(
-    dropdownLocator: Locator,
-    optionText: string,
-  ): Promise<boolean> {
-    const options = await this.getAllOptions(dropdownLocator);
-    return options.includes(optionText);
+  async isDropdownOpen(dropdownName: "sport" | "weekday"): Promise<boolean> {
+    const selector =
+      dropdownName === "sport"
+        ? DropdownSelectors.SPORT
+        : DropdownSelectors.WEEKDAY;
+
+    const dropdown = this.page.getByRole(selector.role, {
+      name: selector.name,
+    });
+    const expanded = await dropdown.getAttribute("aria-expanded");
+    return expanded === "true";
   }
 
-  //Obtener cantidad de opciones
-  async getOptionsCount(dropdownLocator: Locator): Promise<number> {
-    await this.waitHelper.waitForElement(dropdownLocator);
-    return await dropdownLocator.locator("option").count();
+  async getAvailableOptions(): Promise<string[]> {
+    const options = this.page.getByRole("link");
+    const count = await options.count();
+    const optionsList: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const text = await this.elementHelper.getText(options.nth(i));
+      if (text) optionsList.push(text);
+    }
+
+    return optionsList;
   }
 
-  //Verificar que las opciones del dropdown coinciden con un listado esperado
+  async selectByValue(dropdown: Locator, value: string): Promise<void> {
+    Logger.info(`Seleccionando opción: "${value}"`);
+    await this.waitHelper.waitForVisible(dropdown);
+    await dropdown.selectOption({ label: value });
+  }
+
+  async getSelectedOption(dropdown: Locator): Promise<string> {
+    await this.waitHelper.waitForVisible(dropdown);
+
+    const selectedOption = dropdown.locator("option:checked");
+    const text = await selectedOption.textContent();
+    return text?.trim() || "";
+  }
+
+  async getAllOptions(dropdown: Locator): Promise<string[]> {
+    Logger.info("Obteniendo todas las opciones del dropdown");
+    await this.waitHelper.waitForVisible(dropdown);
+
+    const options = dropdown.locator("option");
+    const count = await options.count();
+    const optionsList: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const text = await options.nth(i).textContent();
+      if (text && text.trim()) optionsList.push(text.trim());
+    }
+
+    Logger.info(`Opciones encontradas: ${optionsList.join(", ")}`);
+    return optionsList;
+  }
+
   async verifyOptions(
-    dropdownLocator: Locator,
+    dropdown: Locator,
     expectedOptions: string[],
   ): Promise<void> {
-    const actualOptions = await this.getAllOptions(dropdownLocator);
-    expect(actualOptions).toEqual(expectedOptions);
+    Logger.info(
+      `Verificando opciones esperadas: ${expectedOptions.join(", ")}`,
+    );
+    const actualOptions = await this.getAllOptions(dropdown);
+
+    for (const expected of expectedOptions) {
+      if (!actualOptions.includes(expected)) {
+        throw new Error(
+          `Opción "${expected}" no encontrada. Opciones disponibles: ${actualOptions.join(", ")}`,
+        );
+      }
+    }
   }
 }

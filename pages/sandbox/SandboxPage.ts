@@ -1,48 +1,50 @@
 import { Page, Locator } from "@playwright/test";
 import { BasePage } from "../base/BasePage";
+import { SandboxSelectors } from "./SandboxSelectors";
 import { CheckboxComponent } from "../components/CheckboxComponent";
-import { DropdownComponent } from "../components/DropdownComponent";
 import { RadioButtonComponent } from "../components/RadioButtonComponent";
-import { TableComponent } from "../components/TableComponent";
+import { DropdownComponent } from "../components/DropdownComponent";
 import { PopupComponent } from "../components/PopupComponent";
 import { FormComponent } from "../components/FormComponent";
+import { TableComponent } from "../components/TableComponent";
+import { Logger } from "../../utils/reporting/Logger";
 
-// Página de Sandbox con múltiples componentes para pruebas de automatización
 export class SandboxPage extends BasePage {
   // Componentes
-  public checkboxComponent: CheckboxComponent;
-  public dropdownComponent: DropdownComponent;
-  public radioComponent: RadioButtonComponent;
-  public tableComponent: TableComponent;
-  public popupComponent: PopupComponent;
-  public formComponent: FormComponent;
+  readonly checkbox: CheckboxComponent;
+  readonly radio: RadioButtonComponent;
+  readonly dropdown: DropdownComponent;
+  readonly popup: PopupComponent;
+  readonly form: FormComponent;
+  readonly table: TableComponent;
 
-  // Locators
-  readonly dynamicIdButton: Locator;
+  // Elementos propios
+  readonly dynamicButton: Locator;
   readonly hiddenElement: Locator;
-  readonly textInput: Locator;
   readonly sportsDropdown: Locator;
   readonly weekdayDropdown: Locator;
   readonly uploadFileInput: Locator;
 
   constructor(page: Page) {
-    super(page);
+    super(
+      page,
+      "https://thefreerangetester.github.io/sandbox-automation-testing/",
+    );
 
     // Inicializar componentes
-    this.checkboxComponent = new CheckboxComponent(page);
-    this.dropdownComponent = new DropdownComponent(page);
-    this.radioComponent = new RadioButtonComponent(page);
-    this.tableComponent = new TableComponent(page);
-    this.popupComponent = new PopupComponent(page);
-    this.formComponent = new FormComponent(page);
+    this.checkbox = new CheckboxComponent(page);
+    this.radio = new RadioButtonComponent(page);
+    this.dropdown = new DropdownComponent(page);
+    this.popup = new PopupComponent(page);
+    this.form = new FormComponent(page);
+    this.table = new TableComponent(page);
 
-    // Inicializar locators
-    this.dynamicIdButton = page.getByRole("button", {
-      name: "Hacé click para generar un ID dinámico y mostrar el elemento oculto",
+    // Inicializar elementos
+    this.dynamicButton = page.getByRole(SandboxSelectors.DYNAMIC_BUTTON.role, {
+      name: SandboxSelectors.DYNAMIC_BUTTON.name,
     });
     this.hiddenElement = page.getByText("OMG, aparezco después de 3 segundos");
-    this.textInput = page.getByPlaceholder("Ingresá texto");
-    this.sportsDropdown = page.getByLabel("Dropdown");
+    this.sportsDropdown = page.locator("select#formBasicSelect");
     this.weekdayDropdown = page.getByRole("button", {
       name: "Día de la semana",
     });
@@ -53,42 +55,42 @@ export class SandboxPage extends BasePage {
     return "https://thefreerangetester.github.io/sandbox-automation-testing/";
   }
 
-  // DYNAMIC ID SECTION
-
+  // Dynamic ID Section
   async clickDynamicButton(): Promise<void> {
-    await this.clickElement(this.dynamicIdButton, "Dynamic ID Button");
+    await this.waitHelper.waitForVisible(this.dynamicButton);
+    await this.elementHelper.click(this.dynamicButton);
+    Logger.info("✅ Click en botón dinámico");
   }
 
   async verifyHiddenElementAppears(): Promise<void> {
-    await this.verifyElementVisible(this.hiddenElement, "Hidden Element");
+    await this.waitHelper.waitForVisible(this.hiddenElement);
+    Logger.info("✅ Elemento oculto visible");
   }
 
-  //TEXT INPUT SECTION
-
+  // Text Input Section
   async enterText(text: string): Promise<void> {
-    await this.fillInput(this.textInput, text, "Text Input");
+    await this.form.fill(text);
   }
 
   async clearTextInput(): Promise<void> {
-    await this.elementHelper.clear(this.textInput);
+    await this.form.clear();
   }
 
   async getTextInputValue(): Promise<string> {
-    return await this.elementHelper.getValue(this.textInput);
+    return await this.form.getValue();
   }
 
-  // CHECKBOX SECTION
-
+  // Checkbox Section
   async checkPasta(): Promise<void> {
-    await this.checkboxComponent.check("Pasta 🍝");
+    await this.checkbox.check("Pasta 🍝");
   }
 
   async uncheckPasta(): Promise<void> {
-    await this.checkboxComponent.uncheck("Pasta 🍝");
+    await this.checkbox.uncheck("Pasta 🍝");
   }
 
   async checkMultipleFoods(foods: string[]): Promise<void> {
-    await this.checkboxComponent.checkMultiple(foods);
+    await this.checkbox.checkMultiple(foods);
   }
 
   async getCheckedFoods(): Promise<string[]> {
@@ -99,98 +101,83 @@ export class SandboxPage extends BasePage {
       "Helado 🍧",
       "Torta 🍰",
     ];
-    return await this.checkboxComponent.getCheckedLabels(foods);
+    return await this.checkbox.getCheckedLabels(foods);
   }
 
-  //RADIO BUTTON SECTION
-
+  // Radio Button Section
   async selectYesRadio(): Promise<void> {
-    await this.radioComponent.select("Si");
+    await this.radio.selectYes();
   }
 
   async selectNoRadio(): Promise<void> {
-    await this.radioComponent.select("No");
+    await this.radio.selectNo();
   }
 
-  //DROPDOWN SECTION
-
+  // Dropdown Section
   async selectSport(sport: string): Promise<void> {
-    await this.dropdownComponent.selectByValue(this.sportsDropdown, sport);
+    await this.dropdown.selectByValue(this.sportsDropdown, sport);
   }
 
   async getSelectedSport(): Promise<string> {
-    return await this.dropdownComponent.getSelectedOption(this.sportsDropdown);
+    return await this.dropdown.getSelectedOption(this.sportsDropdown);
   }
 
   async getAllSportsOptions(): Promise<string[]> {
-    return await this.dropdownComponent.getAllOptions(this.sportsDropdown);
+    return await this.dropdown.getAllOptions(this.sportsDropdown);
   }
 
   async verifySportsOptions(expectedOptions: string[]): Promise<void> {
-    await this.dropdownComponent.verifyOptions(
-      this.sportsDropdown,
-      expectedOptions,
-    );
+    await this.dropdown.verifyOptions(this.sportsDropdown, expectedOptions);
   }
 
-  // WEEKDAY DROPDOWN SECTION
-
-  // pages/sandbox/SandboxPage.ts
-
+  // Weekday Section
   async selectWeekday(day: string): Promise<void> {
-    await this.page.getByRole("button", { name: "Día de la semana" }).click();
-    await this.page.getByRole("link", { name: day }).click();
+    await this.dropdown.selectWeekday(day);
   }
 
-  //TABLE SECTION
-
+  // Table Section
   async getStaticTableNames(): Promise<string[]> {
-    return await this.tableComponent.getColumnValues("Tabla estática", 2);
+    return await this.table.getStaticTableColumn(2);
   }
 
-  async getDynamicTableData(): Promise<string[][]> {
-    return await this.tableComponent.getAllTableData("Tabla dinámica");
+  async getDynamicTableValues(): Promise<string[]> {
+    return await this.table.getDynamicTableValues();
   }
 
   async getStaticTableRowCount(): Promise<number> {
-    return await this.tableComponent.getRowCount("Tabla estática");
+    return await this.table.getRowCount();
   }
 
-  async getCellValue(table: string, row: number, col: number): Promise<string> {
-    return await this.tableComponent.getCellValue(table, row, col);
-  }
-
-  // POPUP SECTION
-
+  // Popup Section
   async openPopup(): Promise<void> {
-    await this.popupComponent.open();
+    await this.popup.open();
   }
 
   async closePopup(): Promise<void> {
-    await this.popupComponent.close();
+    await this.popup.close();
   }
 
   async verifyPopupVisible(): Promise<void> {
-    await this.popupComponent.verifyPopupVisible(
-      "¿Viste? ¡Apareció un Pop-up!",
-    );
+    await this.popup.verifyVisible("¿Viste? ¡Apareció un Pop-up!");
   }
 
   async getPopupText(): Promise<string> {
-    return await this.popupComponent.getPopupText();
+    return await this.popup.getText();
   }
 
-  //FILE UPLOAD SECTION
-
+  /* File Upload Section
   async uploadFile(filePath: string): Promise<void> {
     await this.uploadFileInput.setInputFiles(filePath);
+    Logger.info(`✅ Archivo subido: ${filePath}`);
   }
 
   async uploadMultipleFiles(filePaths: string[]): Promise<void> {
     await this.uploadFileInput.setInputFiles(filePaths);
+    Logger.info(`✅ ${filePaths.length} archivos subidos`);
   }
-
+*/
   async clearUploadedFiles(): Promise<void> {
     await this.uploadFileInput.setInputFiles([]);
+    Logger.info("✅ Archivos limpiados");
   }
 }
