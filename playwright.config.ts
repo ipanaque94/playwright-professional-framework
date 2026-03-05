@@ -29,6 +29,11 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    // Configuración para Docker/CI
+    headless: true,
+    viewport: { width: 1280, height: 720 },
+    actionTimeout: 10000,
+    navigationTimeout: 30000,
 
     extraHTTPHeaders: {
       Accept: "application/json",

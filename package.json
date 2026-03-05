@@ -18,7 +18,13 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "report": "playwright show-report reports/html-report --port=9324",
-    "update-snapshots": "playwright test --update-snapshots"
+    "update-snapshots": "playwright test --update-snapshots",
+    "lint": "eslint . --ext .ts",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f jenkins",
+    "docker:restart": "docker-compose restart jenkins"
   },
   "keywords": [
     "playwright",
