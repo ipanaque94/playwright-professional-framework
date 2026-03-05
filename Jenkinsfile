@@ -88,8 +88,6 @@ pipeline {
         // Timestamps en console output
         timestamps()
         
-        // Colores en console output
-        ansiColor('xterm')
     }
 
     stages {
