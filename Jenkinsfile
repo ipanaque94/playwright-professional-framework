@@ -1,137 +1,85 @@
 pipeline {
     agent any
     
-    environment {
-        // Variables de entorno
-        NODE_ENV = 'test'
-        CI = 'true'
-        PLAYWRIGHT_BROWSERS_PATH = '/var/jenkins_home/.cache/ms-playwright'
-        FORCE_COLOR = '1'
-        
-        // Configuración de reportes
-        REPORT_DIR = 'reports'
-        SCREENSHOTS_DIR = 'screenshots'
-        VIDEOS_DIR = 'videos'
-        TRACES_DIR = 'traces'
-    }
-    
     parameters {
         choice(
             name: 'TEST_PROJECT',
-            choices: [
-                'all',
-                'ui-tests',
-                'api-tests',
-                'e2e-tests',
-                'integration-tests',
-                'contract-tests',
-                'performance-tests',
-                'security-tests',
-                'accessibility-tests'
-            ],
-            description: '🎯 Selecciona el proyecto de tests a ejecutar'
+            choices: ['ui-tests', 'all', 'api-tests', 'e2e-tests', 'integration-tests'],
+            description: '🎯 Proyecto de tests a ejecutar'
         )
-        
-        choice(
-            name: 'BROWSER',
-            choices: ['chromium', 'firefox', 'webkit', 'all'],
-            description: '🌐 Selecciona el navegador'
-        )
-        
         choice(
             name: 'TEST_SUITE',
-            choices: ['all', 'ui', 'api', 'e2e', 'integration', 'contract', 'performance', 'security', 'accessibility'],
-            description: '📦 Selecciona la suite de tests'
+            choices: ['all', 'smoke', 'regression', 'api', 'ui'],
+            description: '📋 Suite de tests'
         )
-        
+        choice(
+            name: 'WORKERS',
+            choices: ['1', '2', '4', 'auto'],
+            description: '⚡ Workers paralelos'
+        )
+        choice(
+            name: 'RETRIES',
+            choices: ['0', '1', '2'],
+            description: '🔄 Reintentos en caso de fallo'
+        )
         booleanParam(
             name: 'HEADED',
             defaultValue: false,
-            description: '👁️ Ejecutar tests con interfaz gráfica (solo para debug)'
+            description: '🖥️ Ejecutar tests en modo visible (headed)'
         )
-        
-        booleanParam(
-            name: 'UPDATE_SNAPSHOTS',
-            defaultValue: false,
-            description: '📸 Actualizar screenshots base'
-        )
-        
         booleanParam(
             name: 'GENERATE_TRACE',
             defaultValue: true,
-            description: '🔍 Generar traces para análisis de fallos'
-        )
-        
-        choice(
-            name: 'WORKERS',
-            choices: ['1', '2', '4', '6', 'auto'],
-            description: '⚡ Número de workers paralelos'
-        )
-        
-        choice(
-            name: 'RETRIES',
-            choices: ['0', '1', '2', '3'],
-            description: '🔄 Reintentos en caso de fallo'
+            description: '📹 Generar traces para debugging'
         )
     }
-
+    
     options {
-        // Mantener últimos 30 builds
-        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
-        
-        // Timeout global del pipeline
         timeout(time: 1, unit: 'HOURS')
-        
-        // No permitir builds concurrentes
-        disableConcurrentBuilds()
-        
-        // Timestamps en console output
         timestamps()
-        
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
-
+    
     stages {
         stage('🔍 Pre-Build Checks') {
             steps {
                 script {
-                    
+                    echo '═══════════════════════════════════════════'
                     echo '   PRE-BUILD CHECKS'
-                    
-                    
-                    sh '''
-                        echo "📋 Información del Sistema:"
-                        echo "  - Node: $(node --version)"
-                        echo "  - NPM: $(npm --version)"
-                        echo "  - Playwright: $(npx playwright --version)"
-                        echo "  - Workspace: ${WORKSPACE}"
-                        echo ""
-                        echo "⚙️  Parámetros del Build:"
-                        echo "  - Proyecto: ${TEST_PROJECT}"
-                        echo "  - Navegador: ${BROWSER}"
-                        echo "  - Suite: ${TEST_SUITE}"
-                        echo "  - Workers: ${WORKERS}"
-                        echo "  - Retries: ${RETRIES}"
-                        echo "  - Headed: ${HEADED}"
-                        echo "  - Update Snapshots: ${UPDATE_SNAPSHOTS}"
-                        echo "  - Generate Trace: ${GENERATE_TRACE}"
-                    '''
+                    echo '═══════════════════════════════════════════'
                 }
+                
+                sh '''
+                    echo "📋 Información del Sistema:"
+                    echo "  - Node: $(node --version)"
+                    echo "  - NPM: $(npm --version)"
+                    echo "  - Playwright: $(npx playwright --version)"
+                    echo "  - Workspace: ${WORKSPACE}"
+                    echo ""
+                    echo "⚙️  Parámetros del Build:"
+                    echo "  - Proyecto: ${TEST_PROJECT}"
+                    echo "  - Suite: ${TEST_SUITE}"
+                    echo "  - Workers: ${WORKERS}"
+                    echo "  - Retries: ${RETRIES}"
+                    echo "  - Headed: ${HEADED}"
+                    echo "  - Generate Trace: ${GENERATE_TRACE}"
+                '''
             }
         }
         
         stage('📥 Checkout') {
             steps {
                 script {
-                
+                    echo '═══════════════════════════════════════════'
                     echo '   CHECKOUT CODE'
-                    
+                    echo '═══════════════════════════════════════════'
                 }
                 
                 checkout scm
                 
                 sh '''
                     echo "✅ Código descargado"
-                    echo "📂 Branch: $(git branch --show-current)"
+                    echo "📂 Branch: $(git branch --show-current || echo 'detached HEAD')"
                     echo "🔖 Commit: $(git rev-parse --short HEAD)"
                     echo "👤 Autor: $(git log -1 --pretty=format:'%an')"
                     echo "📝 Mensaje: $(git log -1 --pretty=format:'%s')"
@@ -142,9 +90,9 @@ pipeline {
         stage('🧹 Clean') {
             steps {
                 script {
-                    
+                    echo '═══════════════════════════════════════════'
                     echo '   CLEANING OLD ARTIFACTS'
-                    
+                    echo '═══════════════════════════════════════════'
                 }
                 
                 sh '''
@@ -164,100 +112,95 @@ pipeline {
         stage('📦 Install Dependencies') {
             steps {
                 script {
-                    
+                    echo '═══════════════════════════════════════════'
                     echo '   INSTALLING DEPENDENCIES'
-                    
+                    echo '═══════════════════════════════════════════'
                 }
                 
                 sh '''
                     echo "📥 Instalando dependencias de Node..."
                     npm ci --quiet
                     echo "✅ Dependencias instaladas"
-                    
                     echo ""
                     echo "📊 Resumen de dependencias:"
-                    npm list --depth=0 || true
+                    npm list --depth=0
                 '''
             }
         }
         
-        stage('🎭 Install Playwright Browsers') {
+        stage('🎭 Verify Playwright Browsers') {
             steps {
                 script {
-                    
-                    echo '   INSTALLING PLAYWRIGHT BROWSERS'
-                    
+                    echo '═══════════════════════════════════════════'
+                    echo '   VERIFYING PLAYWRIGHT BROWSERS'
+                    echo '═══════════════════════════════════════════'
                 }
                 
                 sh '''
-                    echo "🌐 Instalando navegadores de Playwright..."
-                    
+                    echo "✅ Navegadores ya instalados en imagen Docker"
                     echo ""
-                    echo "📂 Verificando ubicación de navegadores:"
-            
-                    # Verificar si playwright está instalado globalmente
+                    echo "📂 Verificando ubicación:"
                     which playwright || echo "Playwright instalado localmente"
-            
-                    # Verificar navegadores
                     npx playwright --version
-            
                     echo ""
                     echo "✅ Verificación completada"
                 '''
             }
         }
         
-        stage('🔍 Code Quality') {
-            parallel {
-                stage('ESLint') {
-                    steps {
-                        script {
-                            echo '🔍 Ejecutando ESLint...'
-                            sh 'npm run lint || true'
-                        }
-                    }
-                }
-                
-                stage('Type Check') {
-                    steps {
-                        script {
-                            echo '📝 Verificando tipos TypeScript...'
-                            sh 'npx tsc --noEmit || true'
-                        }
-                    }
-                }
-            }
-        }
-        
         stage('🧪 Run Tests') {
             steps {
                 script {
-                    
+                    echo '═══════════════════════════════════════════'
                     echo '   RUNNING TESTS'
-                   
+                    echo '═══════════════════════════════════════════'
                     
-                    def testCommand = buildTestCommand(
-                        params.TEST_SUITE,
-                        params.TEST_PROJECT,
-                        params.BROWSER,
-                        params.HEADED,
-                        params.UPDATE_SNAPSHOTS,
-                        params.GENERATE_TRACE,
-                        params.WORKERS,
-                        params.RETRIES
-                    )
+                    def command = 'npx playwright test'
+                    
+                    // Proyecto específico
+                    if (params.TEST_PROJECT != 'all') {
+                        command += " --project=${params.TEST_PROJECT}"
+                    }
+                    
+                    // Suite específica
+                    if (params.TEST_SUITE != 'all') {
+                        command += " tests/${params.TEST_SUITE}/"
+                    }
+                    
+                    // Workers
+                    if (params.WORKERS != 'auto') {
+                        command += " --workers=${params.WORKERS}"
+                    }
+                    
+                    // Retries
+                    if (params.RETRIES != '0') {
+                        command += " --retries=${params.RETRIES}"
+                    }
+                    
+                    // Headed mode
+                    if (params.HEADED == true) {
+                        command += ' --headed'
+                    }
+                    
+                    // Traces
+                    if (params.GENERATE_TRACE == true) {
+                        command += ' --trace=retain-on-failure'
+                    }
+                    
+                    // Reporters
+                    command += ' --reporter=html,junit,list'
                     
                     echo "🚀 Comando a ejecutar:"
-                    echo "   ${testCommand}"
+                    echo "   ${command}"
                     echo ""
                     
-                    def testResult = sh(script: testCommand, returnStatus: true)
+                    // Ejecutar tests - capturar exit code pero continuar
+                    def testResult = sh(script: command, returnStatus: true)
                     
                     echo ""
                     echo "📊 Resultado de los tests:"
                     if (testResult == 0) {
                         echo "   ✅ Todos los tests pasaron"
-                        currentBuild.result = 'SUCCESS'
                     } else {
                         echo "   ⚠️  Algunos tests fallaron (Exit code: ${testResult})"
                         currentBuild.result = 'UNSTABLE'
@@ -269,27 +212,24 @@ pipeline {
         stage('📊 Generate Reports') {
             steps {
                 script {
-                    
+                    echo '═══════════════════════════════════════════'
                     echo '   GENERATING REPORTS'
-                    
+                    echo '═══════════════════════════════════════════'
                 }
                 
                 sh '''
                     echo "📈 Generando reportes HTML..."
                     
-                    # Verificar si existen resultados
                     if [ -d "test-results" ]; then
                         echo "✅ Test results encontrados"
-                        ls -lh test-results/ | head -n 20
                     else
                         echo "⚠️  No se encontraron test results"
                     fi
                     
-                    # Generar reporte HTML si no existe
-                    if [ ! -d "reports/html-report" ]; then
-                        npx playwright show-report reports/html-report --host 0.0.0.0 > /dev/null 2>&1 &
-                        sleep 2
-                        pkill -f "playwright show-report" || true
+                    if [ -d "playwright-report" ]; then
+                        mkdir -p reports
+                        mv playwright-report reports/html-report
+                        echo "✅ Reporte HTML movido a reports/html-report"
                     fi
                     
                     echo "✅ Reportes generados"
@@ -299,31 +239,14 @@ pipeline {
         
         stage('📤 Publish Results') {
             parallel {
-                stage('HTML Report') {
-                    steps {
-                        script {
-                            echo '📊 Publicando reporte HTML...'
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'reports/html-report',
-                                reportFiles: 'index.html',
-                                reportName: '📊 Playwright Test Report',
-                                reportTitles: 'Test Results'
-                            ])
-                        }
-                    }
-                }
-                
                 stage('JUnit Report') {
                     steps {
                         script {
                             echo '📋 Publicando reporte JUnit...'
                             junit(
-                                testResults: 'reports/junit.xml',
+                                testResults: 'reports/junit-results.xml',
                                 allowEmptyResults: true,
-                                skipPublishingChecks: false
+                                skipPublishingChecks: true
                             )
                         }
                     }
@@ -334,16 +257,9 @@ pipeline {
                         script {
                             echo '📦 Archivando artefactos...'
                             archiveArtifacts(
-                                artifacts: '''
-                                    test-results/**/*,
-                                    reports/**/*,
-                                    screenshots/**/*.png,
-                                    videos/**/*.webm,
-                                    traces/**/*.zip
-                                ''',
+                                artifacts: 'test-results/**/*,reports/**/*,screenshots/**/*.png,videos/**/*.webm,traces/**/*.zip',
                                 allowEmptyArchive: true,
-                                fingerprint: true,
-                                onlyIfSuccessful: false
+                                fingerprint: false
                             )
                         }
                     }
@@ -354,45 +270,41 @@ pipeline {
         stage('📈 Test Metrics') {
             steps {
                 script {
-                    
+                    echo '═══════════════════════════════════════════'
                     echo '   TEST METRICS'
-                    
-                    
-                    sh '''
-                        echo "📊 Generando métricas de tests..."
-                        
-                        # Contar tests
-                        TOTAL_TESTS=$(find test-results -name "*.xml" 2>/dev/null | wc -l)
-                        FAILED_TESTS=$(find test-results -name "*-failed-*" 2>/dev/null | wc -l)
-                        
-                        echo ""
-                        echo "📈 Resumen de Ejecución:"
-                        echo "  - Total de archivos de resultado: ${TOTAL_TESTS}"
-                        echo "  - Tests fallidos: ${FAILED_TESTS}"
-                        
-                        # Screenshots
-                        if [ -d "screenshots" ]; then
-                            SCREENSHOT_COUNT=$(find screenshots -name "*.png" 2>/dev/null | wc -l)
-                            echo "  - Screenshots capturados: ${SCREENSHOT_COUNT}"
-                        fi
-                        
-                        # Videos
-                        if [ -d "videos" ]; then
-                            VIDEO_COUNT=$(find videos -name "*.webm" 2>/dev/null | wc -l)
-                            echo "  - Videos grabados: ${VIDEO_COUNT}"
-                        fi
-                        
-                        # Traces
-                        if [ -d "traces" ]; then
-                            TRACE_COUNT=$(find traces -name "*.zip" 2>/dev/null | wc -l)
-                            echo "  - Traces generados: ${TRACE_COUNT}"
-                        fi
-                        
-                        echo ""
-                        echo "💾 Uso de espacio:"
-                        du -sh test-results reports screenshots videos traces 2>/dev/null || echo "  - No hay datos disponibles"
-                    '''
+                    echo '═══════════════════════════════════════════'
                 }
+                
+                sh '''
+                    echo "📊 Generando métricas de tests..."
+                    
+                    TOTAL_TESTS=$(find test-results -name "*.xml" 2>/dev/null | wc -l)
+                    FAILED_TESTS=$(find test-results -name "*-failed-*" 2>/dev/null | wc -l)
+                    
+                    echo ""
+                    echo "📈 Resumen de Ejecución:"
+                    echo "  - Total de archivos de resultado: ${TOTAL_TESTS}"
+                    echo "  - Tests fallidos: ${FAILED_TESTS}"
+                    
+                    if [ -d "screenshots" ]; then
+                        SCREENSHOTS=$(find screenshots -name "*.png" 2>/dev/null | wc -l)
+                        echo "  - Screenshots capturados: ${SCREENSHOTS}"
+                    fi
+                    
+                    if [ -d "videos" ]; then
+                        VIDEOS=$(find videos -name "*.webm" 2>/dev/null | wc -l)
+                        echo "  - Videos grabados: ${VIDEOS}"
+                    fi
+                    
+                    if [ -d "traces" ]; then
+                        TRACES=$(find traces -name "*.zip" 2>/dev/null | wc -l)
+                        echo "  - Traces generados: ${TRACES}"
+                    fi
+                    
+                    echo ""
+                    echo "💾 Uso de espacio:"
+                    du -sh test-results reports screenshots videos traces 2>/dev/null || echo "  - No hay datos disponibles"
+                '''
             }
         }
     }
@@ -400,45 +312,34 @@ pipeline {
     post {
         always {
             script {
-                
+                echo '═══════════════════════════════════════════'
                 echo '   PIPELINE COMPLETED'
-                
-                def duration = currentBuild.durationString.replace(' and counting', '')
-                def result = currentBuild.currentResult
-                
-                echo "⏱️  Duración: ${duration}"
-                echo "📊 Resultado: ${result}"
+                echo '═══════════════════════════════════════════'
+                echo "⏱️  Duración: ${currentBuild.durationString.replace(' and counting', '')}"
+                echo "📊 Resultado: ${currentBuild.result ?: 'SUCCESS'}"
                 echo "🔗 Build URL: ${env.BUILD_URL}"
                 
-                if (result == 'SUCCESS') {
-                    echo '✅ PIPELINE EXITOSO'
-                } else if (result == 'UNSTABLE') {
-                    echo '⚠️  PIPELINE INESTABLE (algunos tests fallaron)'
-                } else if (result == 'FAILURE') {
-                    echo '❌ PIPELINE FALLÓ'
+                if (currentBuild.result == 'SUCCESS') {
+                    echo "✅ PIPELINE EXITOSO"
+                } else if (currentBuild.result == 'UNSTABLE') {
+                    echo "⚠️  PIPELINE INESTABLE (algunos tests fallaron)"
                 } else {
-                    echo "ℹ️  Estado: ${result}"
+                    echo "❌ PIPELINE FALLÓ"
                 }
                 
-                echo 'ENOC'
+                echo "ENOC"
             }
         }
         
         success {
             script {
-                echo '🎉 ¡Todos los tests pasaron exitosamente!'
-                
-                // Notificación opcional (descomentar si usas Slack/Email)
-                // slackSend(color: 'good', message: "✅ Tests pasaron: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+                echo '✅ Todos los tests pasaron exitosamente'
             }
         }
         
         unstable {
             script {
                 echo '⚠️  Algunos tests fallaron, revisa el reporte'
-                
-                // Notificación opcional
-                // slackSend(color: 'warning', message: "⚠️  Tests inestables: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
             }
         }
         
@@ -456,9 +357,6 @@ pipeline {
                     echo "📂 Contenido del workspace:"
                     ls -lah ${WORKSPACE} | head -n 20
                 '''
-                
-                // Notificación opcional
-                // slackSend(color: 'danger', message: "❌ Pipeline falló: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
             }
         }
         
@@ -467,55 +365,10 @@ pipeline {
                 echo '🧹 Limpiando workspace temporal...'
                 
                 sh '''
-                    # Mantener solo lo necesario
                     echo "💾 Preservando reportes y artefactos importantes"
-                    
-                    # Opcional: Limpiar node_modules para ahorrar espacio
-                    # rm -rf node_modules
-                    
                     echo "✅ Limpieza completada"
                 '''
             }
         }
     }
-}
-
-
-// FUNCIONES AUXILIARES
-
-
-def buildTestCommand(testSuite, testProject, browser, headed, updateSnapshots, generateTrace, workers, retries) {
-    def command = 'npx playwright test'
-
-    if (testSuite != 'all') {
-        command += " tests/${testSuite}/"
-    }
-
-    if (testProject != 'all') {
-        command += " --project=${testProject}"
-    }
-
-    if (workers != 'auto') {
-        command += " --workers=${workers}"
-    }
-
-    if (retries != '0') {
-        command += " --retries=${retries}"
-    }
-
-    if (headed == true) {
-        command += ' --headed'
-    }
-
-    if (updateSnapshots == true) {
-        command += ' --update-snapshots'
-    }
-
-    if (generateTrace == true) {
-        command += ' --trace=retain-on-failure'
-    }
-
-    command += ' --reporter=html,junit,list'
-
-    return command
 }
