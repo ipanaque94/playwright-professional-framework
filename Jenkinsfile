@@ -192,17 +192,17 @@ pipeline {
                 sh '''
                     echo "🌐 Instalando navegadores de Playwright..."
                     
-                    if [ "${BROWSER}" = "all" ]; then
-                        npx playwright install --with-deps
-                    else
-                        npx playwright install --with-deps ${BROWSER}
-                    fi
-                    
-                    echo "✅ Navegadores instalados"
-                    
                     echo ""
-                    echo "📂 Ubicación de navegadores:"
-                    ls -lah ${PLAYWRIGHT_BROWSERS_PATH} || echo "⚠️  Directorio no encontrado"
+                    echo "📂 Verificando ubicación de navegadores:"
+            
+                    # Verificar si playwright está instalado globalmente
+                    which playwright || echo "Playwright instalado localmente"
+            
+                    # Verificar navegadores
+                    npx playwright --version
+            
+                    echo ""
+                    echo "✅ Verificación completada"
                 '''
             }
         }
