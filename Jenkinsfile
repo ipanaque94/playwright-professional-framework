@@ -487,47 +487,34 @@ pipeline {
 def buildTestCommand(testSuite, testProject, browser, headed, updateSnapshots, generateTrace, workers, retries) {
     def command = 'npx playwright test'
 
-    // Suite específica
     if (testSuite != 'all') {
         command += " tests/${testSuite}/"
     }
 
-    // Proyecto específico
     if (testProject != 'all') {
         command += " --project=${testProject}"
     }
 
-    // Navegador específico
-    if (browser != 'all') {
-        command += " --project=${browser}"
-    }
-
-    // Workers paralelos
     if (workers != 'auto') {
         command += " --workers=${workers}"
     }
 
-    // Reintentos
     if (retries != '0') {
         command += " --retries=${retries}"
     }
 
-    // Modo headed (solo para debug)
     if (headed == true) {
         command += ' --headed'
     }
 
-    // Actualizar snapshots
     if (updateSnapshots == true) {
         command += ' --update-snapshots'
     }
 
-    // Generar traces
     if (generateTrace == true) {
         command += ' --trace=retain-on-failure'
     }
 
-    // Reporter
     command += ' --reporter=html,junit,list'
 
     return command
