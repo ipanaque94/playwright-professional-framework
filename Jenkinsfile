@@ -244,7 +244,7 @@ pipeline {
                         script {
                             echo '📋 Publicando reporte JUnit...'
                             junit(
-                                testResults: 'reports/junit-results.xml',
+                                testResults: 'test-results/**/*.xml',
                                 allowEmptyResults: true,
                                 skipPublishingChecks: true
                             )
@@ -257,13 +257,33 @@ pipeline {
                         script {
                             echo '📦 Archivando artefactos...'
                             archiveArtifacts(
-                                artifacts: 'test-results/**/*,reports/**/*,screenshots/**/*.png,videos/**/*.webm,traces/**/*.zip',
+                                artifacts: 'test-results/**/*,playwright-report/**/*,screenshots/**/*.png,videos/**/*.webm,traces/**/*.zip',
                                 allowEmptyArchive: true,
                                 fingerprint: false
                             )
                         }
                     }
                 }
+            }
+        }
+        
+        stage('📊 HTML Report') {
+            steps {
+                script {
+                    echo '═══════════════════════════════════════════'
+                    echo '   PUBLISHING HTML REPORT'
+                    echo '═══════════════════════════════════════════'
+                }
+                
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'playwright-report',
+                    reportFiles: 'index.html',
+                    reportName: 'Playwright Test Report',
+                    reportTitles: 'Test Execution Report'
+                ])
             }
         }
         
