@@ -4,7 +4,7 @@ pipeline {
     parameters {
         choice(
             name: 'TEST_PROJECT',
-            choices: ['ui-tests', 'all', 'api-tests', 'e2e-tests', 'integration-tests'],
+            choices: ['all', 'ui-tests', 'api-tests', 'e2e-tests', 'integration-tests'],
             description: '🎯 Proyecto de tests a ejecutar'
         )
         choice(
@@ -243,7 +243,7 @@ pipeline {
                         script {
                             echo '📋 Publicando reporte JUnit...'
                             junit(
-                                testResults: 'test-results/**/*.xml',
+                                testResults: 'test-results/*.xml',
                                 allowEmptyResults: true,
                                 skipPublishingChecks: true
                             )
