@@ -155,51 +155,44 @@ pipeline {
                     echo '   RUNNING TESTS'
                     echo '═══════════════════════════════════════════'
 
-                    // FIX: Crear el directorio test-results ANTES de ejecutar Playwright
-                    // para garantizar que el JUnit reporter pueda escribir el XML
                     sh 'mkdir -p test-results'
                     
                     def command = 'npx playwright test'
                     
-                    // Proyecto específico
+                    
                     if (params.TEST_PROJECT != 'all') {
                         command += " --project=${params.TEST_PROJECT}"
                     }
                     
-                    // Suite específica
+                    
                     if (params.TEST_SUITE != 'all') {
                         command += " tests/${params.TEST_SUITE}/"
                     }
                     
-                    // Workers
+                    
                     if (params.WORKERS != 'auto') {
                         command += " --workers=${params.WORKERS}"
                     }
                     
-                    // Retries
+                    
                     if (params.RETRIES != '0') {
                         command += " --retries=${params.RETRIES}"
                     }
                     
-                    // Headed mode
+                    
                     if (params.HEADED == true) {
                         command += ' --headed'
                     }
                     
-                    // Traces
+                    
                     if (params.GENERATE_TRACE == true) {
                         command += ' --trace=retain-on-failure'
                     }
-                    
-                    // NO pasar --reporter en el comando
-                    // Los reporters están definidos en playwright.config.ts
-                    // para que outputFile de junit sea respetado
-                    
+                   
                     echo "🚀 Comando a ejecutar:"
                     echo "   ${command}"
                     echo ""
                     
-                    // Ejecutar tests — capturar exit code pero continuar
                     def testResult = sh(script: command, returnStatus: true)
                     
                     echo ""
