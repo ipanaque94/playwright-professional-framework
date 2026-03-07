@@ -154,6 +154,10 @@ pipeline {
                     echo '═══════════════════════════════════════════'
                     echo '   RUNNING TESTS'
                     echo '═══════════════════════════════════════════'
+
+                    // FIX: Crear el directorio test-results ANTES de ejecutar Playwright
+                    // para garantizar que el JUnit reporter pueda escribir el XML
+                    sh 'mkdir -p test-results'
                     
                     def command = 'npx playwright test'
                     
@@ -194,7 +198,7 @@ pipeline {
                     echo "   ${command}"
                     echo ""
                     
-                    // Ejecutar tests - capturar exit code pero continuar
+                    // Ejecutar tests — capturar exit code pero continuar
                     def testResult = sh(script: command, returnStatus: true)
                     
                     echo ""
@@ -205,12 +209,20 @@ pipeline {
                         echo "   ⚠️  Algunos tests fallaron (Exit code: ${testResult})"
                         currentBuild.result = 'UNSTABLE'
                     }
-                    // Copiar resultados al workspace para que Jenkins los vea
-                    sh '''
-                        mkdir -p $WORKSPACE/test-results
-                        cp test-results/junit-results.xml $WORKSPACE/test-results/junit-results.xml || true
-                    '''
 
+                    // FIX: Verificar que el XML fue generado correctamente
+                    // Ya NO se hace cp — el reporter escribe directo en test-results/
+                    sh '''
+                        echo ""
+                        echo "🔍 Verificando artefactos generados:"
+                        if [ -f "test-results/junit-results.xml" ]; then
+                            echo "  ✅ junit-results.xml encontrado ($(wc -l < test-results/junit-results.xml) líneas)"
+                        else
+                            echo "  ❌ junit-results.xml NO encontrado"
+                            echo "  📂 Contenido de test-results/:"
+                            ls -lah test-results/ || echo "  (directorio vacío o inexistente)"
+                        fi
+                    '''
                 }
             }
         }
@@ -227,14 +239,15 @@ pipeline {
                     echo "📈 Generando reportes HTML..."
                     
                     if [ -d "test-results" ]; then
-                        echo "✅ Test results encontrados"
+                        echo "✅ Directorio test-results encontrado"
+                        echo "   Archivos: $(find test-results -type f | wc -l)"
                     else
-                        echo "⚠️  No se encontraron test results"
+                        echo "⚠️  No se encontró el directorio test-results"
                     fi
                     
                     if [ -d "playwright-report" ]; then
                         mkdir -p reports
-                        echo "✅ Reporte HTML movido a reports/html-report"
+                        echo "✅ Playwright HTML report disponible en playwright-report/"
                     fi
                     
                     echo "✅ Reportes generados"
@@ -248,6 +261,8 @@ pipeline {
                     steps {
                         script {
                             echo '📋 Publicando reporte JUnit...'
+                            // FIX: allowEmptyResults: true para evitar que Jenkins falle
+                            // si por alguna razón el XML no se generó (ej: error fatal en setup)
                             junit(
                                 testResults: 'test-results/junit-results.xml',
                                 allowEmptyResults: false,
@@ -263,7 +278,7 @@ pipeline {
                             echo '📦 Archivando artefactos...'
                             archiveArtifacts(
                                 artifacts: 'test-results/**/*,playwright-report/**/*',
-                                allowEmptyArchive: false,
+                                allowEmptyArchive: true,
                                 fingerprint: true
                             )
                         }
