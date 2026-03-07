@@ -191,8 +191,9 @@ pipeline {
                         command += ' --trace=retain-on-failure'
                     }
                     
-                    // Reporters
-                    command += ' --reporter=html,junit,list'
+                    // NO pasar --reporter en el comando
+                    // Los reporters están definidos en playwright.config.ts
+                    // para que outputFile de junit sea respetado
                     
                     echo "🚀 Comando a ejecutar:"
                     echo "   ${command}"
@@ -210,8 +211,6 @@ pipeline {
                         currentBuild.result = 'UNSTABLE'
                     }
 
-                    // FIX: Verificar que el XML fue generado correctamente
-                    // Ya NO se hace cp — el reporter escribe directo en test-results/
                     sh '''
                         echo ""
                         echo "🔍 Verificando artefactos generados:"
@@ -261,8 +260,6 @@ pipeline {
                     steps {
                         script {
                             echo '📋 Publicando reporte JUnit...'
-                            // FIX: allowEmptyResults: true para evitar que Jenkins falle
-                            // si por alguna razón el XML no se generó (ej: error fatal en setup)
                             junit(
                                 testResults: 'test-results/junit-results.xml',
                                 allowEmptyResults: false,
