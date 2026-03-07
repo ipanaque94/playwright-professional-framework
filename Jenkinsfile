@@ -228,7 +228,6 @@ pipeline {
                     
                     if [ -d "playwright-report" ]; then
                         mkdir -p reports
-                        mv playwright-report reports/html-report
                         echo "✅ Reporte HTML movido a reports/html-report"
                     fi
                     
@@ -257,7 +256,7 @@ pipeline {
                         script {
                             echo '📦 Archivando artefactos...'
                             archiveArtifacts(
-                                artifacts: 'test-results/**/*,playwright-report/**/*,screenshots/**/*.png,videos/**/*.webm,traces/**/*.zip',
+                                artifacts: 'test-results/**/*,playwright-report/**/*',
                                 allowEmptyArchive: true,
                                 fingerprint: false
                             )
@@ -276,7 +275,7 @@ pipeline {
                 }
                 
                 publishHTML([
-                    allowMissing: false,
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
                     reportDir: 'playwright-report',
@@ -286,7 +285,7 @@ pipeline {
                 ])
             }
         }
-        
+
         stage('📈 Test Metrics') {
             steps {
                 script {
