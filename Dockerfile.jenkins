@@ -1,48 +1,30 @@
-FROM jenkins/jenkins:lts
+FROM jenkins/jenkins:2.541.2-lts
 
 USER root
 
-# Instalar Node.js 18
+# Instalar Node.js 18.x
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs
 
-# Instalar dependencias de Playwright
+# Instalar dependencias del sistema para Playwright
 RUN apt-get update && apt-get install -y \
-    # Dependencias básicas
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libdbus-1-3 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libatspi2.0-0 \
-    libxshmfence1 \
-    # Dependencias adicionales
-    fonts-liberation \
-    libappindicator3-1 \
-    xdg-utils \
-    wget \
-    ca-certificates \
-    # Limpiar caché
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libdbus-1-3 libxkbcommon0 \
+    libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 libcairo2 \
+    libatspi2.0-0 libxshmfence1 fonts-liberation \
+    libappindicator3-1 xdg-utils wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Playwright global como root
-RUN npm install -g playwright@1.58.2
+# Instalar Playwright globalmente y sus browsers
+RUN npm install -g playwright@1.58.2 && \
+    npx playwright install chromium --with-deps
 
-# Instalar navegadores de Playwright como root
-RUN npx playwright install --with-deps chromium
+# 🔧 SOLUCIÓN: Copiar browsers de root a jenkins user
+RUN mkdir -p /var/jenkins_home/.cache && \
+    cp -r /root/.cache/ms-playwright /var/jenkins_home/.cache/ && \
+    chown -R jenkins:jenkins /var/jenkins_home/.cache
 
-# Volver a usuario jenkins
 USER jenkins
 
 EXPOSE 8080 50000
