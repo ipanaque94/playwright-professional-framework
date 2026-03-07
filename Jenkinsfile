@@ -205,6 +205,12 @@ pipeline {
                         echo "   ⚠️  Algunos tests fallaron (Exit code: ${testResult})"
                         currentBuild.result = 'UNSTABLE'
                     }
+                    // Copiar resultados al workspace para que Jenkins los vea
+                    sh '''
+                        mkdir -p $WORKSPACE/test-results
+                        cp test-results/junit-results.xml $WORKSPACE/test-results/junit-results.xml || true
+                    '''
+
                 }
             }
         }
@@ -257,8 +263,8 @@ pipeline {
                             echo '📦 Archivando artefactos...'
                             archiveArtifacts(
                                 artifacts: 'test-results/**/*,playwright-report/**/*',
-                                allowEmptyArchive: true,
-                                fingerprint: false
+                                allowEmptyArchive: false,
+                                fingerprint: true
                             )
                         }
                     }
