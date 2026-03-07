@@ -1,25 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
-import { config } from "dotenv";
+import dotenv from "dotenv";
 
-config({ path: ".env" });
+dotenv.config();
 
 export default defineConfig({
   testDir: "./tests",
-  timeout: 60000,
-  expect: {
-    timeout: 10000,
-  },
-
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 1 : undefined,
 
   reporter: [
-    ["html", { outputFolder: "reports/html-report", open: "never" }],
-    ["json", { outputFile: "reports/test-results.json" }],
-    ["junit", { outputFile: "reports/junit-results.xml" }],
     ["list"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+    ["junit", { outputFile: "test-results/junit-results.xml" }], // ← CRÍTICO
   ],
 
   use: {
@@ -29,78 +23,50 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    // Configuración para Docker/CI
-    headless: true,
-    viewport: { width: 1280, height: 720 },
-    actionTimeout: 10000,
-    navigationTimeout: 30000,
-
-    extraHTTPHeaders: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
   },
 
   projects: [
-    // ==================== UI TESTS ====================
     {
       name: "ui-tests",
+      testMatch: /tests\/ui\/.*\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"] },
-      testMatch: "**/ui/**/*.spec.ts", // ✅ Detecta sandbox.spec.ts
     },
-
-    // ==================== API TESTS ====================
     {
       name: "api-tests",
-      testMatch: "**/api/**/*.spec.ts", // ✅ Detecta posts.api.spec.ts
-      use: {
-        baseURL: "https://jsonplaceholder.typicode.com",
-      },
+      testMatch: /tests\/api\/.*\.spec\.ts$/,
     },
-
-    // ==================== E2E TESTS ====================
     {
       name: "e2e-tests",
+      testMatch: /tests\/e2e\/.*\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"] },
-      testMatch: "**/e2e/**/*.spec.ts", // ✅ Detecta complete-flow.spec.ts
     },
-
-    // ==================== INTEGRATION TESTS ====================
     {
       name: "integration-tests",
-      testMatch: "**/integration/**/*.spec.ts", // ✅ Detecta api-integration.spec.ts
+      testMatch: /tests\/integration\/.*\.spec\.ts$/,
     },
-
-    // ==================== CONTRACT TESTS ====================
     {
       name: "contract-tests",
-      testMatch: "**/contract/**/*.spec.ts", // ✅ Detecta api-contract.spec.ts
+      testMatch: /tests\/contract\/.*\.spec\.ts$/,
     },
-
-    // ==================== PERFORMANCE TESTS ====================
     {
       name: "performance-tests",
-      testMatch: "**/performance/**/*.spec.ts", // ✅ Detecta load-test.spec.ts
+      testMatch: /tests\/performance\/.*\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
     },
-
-    // ==================== SECURITY TESTS ====================
     {
       name: "security-tests",
-      testMatch: "**/security/**/*.spec.ts", // ✅ Detecta xss.spec.ts, sql-injection.spec.ts
+      testMatch: /tests\/security\/.*\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
     },
-
-    // ==================== ACCESSIBILITY TESTS ====================
     {
       name: "accessibility-tests",
+      testMatch: /tests\/accessibility\/.*\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"] },
-      testMatch: "**/accessibility/**/*.spec.ts", // ✅ Detecta wcag.spec.ts
     },
-
-    // ==================== VISUAL TESTS ====================
     {
       name: "visual-tests",
+      testMatch: /tests\/visual\/.*\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"] },
-      testMatch: "**/visual/**/*.spec.ts",
     },
   ],
 });

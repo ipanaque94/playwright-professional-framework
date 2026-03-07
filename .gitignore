@@ -35,5 +35,5 @@ Thumbs.db
 *.webm
 *.zip
 
-# Keep snapshots
-!tests/**/*-snapshots/**/*.png
+# Visual regression snapshots (se generan en CI)
+tests/**/*-snapshots/
