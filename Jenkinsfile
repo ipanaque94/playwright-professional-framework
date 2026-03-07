@@ -243,8 +243,8 @@ pipeline {
                         script {
                             echo '📋 Publicando reporte JUnit...'
                             junit(
-                                testResults: 'test-results/*.xml',
-                                allowEmptyResults: true,
+                                testResults: 'test-results/junit-results.xml',
+                                allowEmptyResults: false,
                                 skipPublishingChecks: true
                             )
                         }
