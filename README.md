@@ -17,7 +17,7 @@ La mayoría de tutoriales de Playwright muestran un test de login y ya. Nadie ex
 qué pasa cuando tienes 50 tests, varios flujos y un equipo que necesita entender qué
 prueba cada test y por qué.
 
-Así que me propuse construir un framework con la estructura que tendría en una empresa
+Así que me propuse construir una Suite de puebas atomatizadas con la estructura que tendría en una empresa
 real: Page Objects para separar la lógica de navegación de los tests, fixtures para
 reutilizar el estado de autenticación, 9 tipos de prueba con propósito distinto cada
 uno, y un pipeline en Jenkins + Docker que corre en un entorno limpio en cada ejecución.
@@ -48,7 +48,7 @@ imposible saber qué falló y por qué.
 
 | Proyecto | Propósito | Cuándo corre |
 |---|---|---|
-| `ui-tests` | Funcionalidad de interfaz — el 80% del trabajo diario de un QA | Cada commit |
+| `ui-tests` | Funcionalidad de interfaz  | Cada commit |
 | `api-tests` | Validación de endpoints REST — independiente de la UI | Cada commit |
 | `e2e-tests` | Flujos completos de usuario de punta a punta | Antes de cada deploy |
 | `integration-tests` | Comunicación entre componentes de la misma página | Cada commit |
@@ -119,7 +119,7 @@ pasando — la tabla "funciona", solo tiene una columna extra inesperada.
 ### Security Tests — "¿El sistema rechaza inputs maliciosos?"
 
 No soy especialista en seguridad, pero cubro lo básico que cualquier QA debería
-verificar según OWASP Top 10:
+verificar según OWASP:
 
 **SQL Injection (SEC001):** Ingreso `' OR '1'='1` en los campos del formulario
 y verifico que aparezca como texto plano en la tabla, no como un resultado de
@@ -262,32 +262,7 @@ npx playwright show-report
 
 ---
 
-## Estructura del proyecto
-
-```
-playwright-professional-framework/
-├── tests/
-│   ├── ui/              → Pruebas funcionales de interfaz
-│   ├── api/             → Pruebas de endpoints REST
-│   ├── e2e/             → Flujos completos de usuario
-│   ├── integration/     → Comunicación entre componentes
-│   ├── contract/        → Validación de estructura de datos
-│   ├── performance/     → Tiempos de carga y render
-│   ├── security/        → SQL injection, XSS, inputs maliciosos
-│   ├── accessibility/   → Cumplimiento WCAG con axe-core
-│   └── visual/          → Regresión visual con screenshots
-├── pages/               → Page Objects (un archivo por página)
-├── fixtures/            → Fixtures reutilizables (auth, setup)
-├── config/              → Configuración por entorno
-├── utils/               → Helpers compartidos
-├── playwright.config.ts → Configuración central de Playwright
-├── Jenkinsfile          → Pipeline CI/CD declarativo
-└── Dockerfile.jenkins   → Imagen con Node.js + Playwright + Jenkins
-```
-
----
-
-## Qué aprendí que no está en los tutoriales
+## Qué aprendí
 
 El `retries: 0` en local es intencional — no quieres que los tests se
 reintenten y oculten fallas reales mientras desarrollas.
@@ -315,4 +290,4 @@ ISTQB Foundation Level. Este proyecto y el de
 [RestAssured API Testing](https://github.com/ipanaque94/RestAssured3APIS)
 son mi portafolio práctico de lo aprendido.
 
-[LinkedIn](https://linkedin.com/in/tu-perfil) · [GitHub](https://github.com/ipanaque94)
+[LinkedIn](www.linkedin.com/in/enoc-isaac-ipanaque-rodas-b3729a283) · [GitHub](https://github.com/ipanaque94)
