@@ -1,162 +1,185 @@
-Playwright E2E Testing Framework
+# Playwright E2E Testing Framework
 
-Proyecto personal de automatización E2E construido desde cero para demostrar cómo un QA profesional estructura pruebas en un entorno real. Implementa Page Object Model con 6 componentes, 9 proyectos de prueba organizados por tipo, y pipeline CI/CD con Jenkins + Docker.
-🔗 Ver código en GitHub
+> Proyecto personal de automatización UI construido desde cero para aprender
+> cómo un QA organiza pruebas en un entorno real. Implementa Page Object Model,
+> 9 tipos de prueba organizados por propósito, y pipeline CI/CD con Jenkins + Docker.
 
-Por qué construí esto (y lo que aprendí en el camino)
-Cuando arranqué con QA Automation, encontré muchos tutoriales que mostraban "cómo hacer un test de login" pero ninguno explicaba cómo organizar 50+ tests en un proyecto que no se vuelva imposible de mantener.
-Este proyecto lo construí con una regla simple: si no entiendo por qué algo está organizado de cierta manera, no lo dejo así. Eso significó refactorizar varias veces, leer documentación de Playwright hasta las 2am, y debuggear errores que solo aparecían en CI pero nunca en local.
-El resultado no es un "proyecto de ejemplo perfecto". Es un proyecto que refleja cómo pienso como QA: qué pruebo, por qué lo pruebo de esa manera, y cómo lo organizo para que otro QA (o yo mismo en 3 meses) pueda entender la lógica sin tener que leer 500 líneas de código.
+---
 
-Qué se prueba y por qué lo dividí así
-Sistema bajo prueba: Sandbox de Automation Testing
-Un sitio de práctica con formularios, tablas dinámicas, popups, drag & drop y elementos que cambian de estado. Perfecto para cubrir los casos típicos que un QA enfrenta en aplicaciones web reales.
-Arquitectura: 9 proyectos de prueba separados
-La mayoría de tutoriales pone todo en un solo proyecto llamado "tests". Yo lo dividí en 9 porque en empresas reales, diferentes tipos de pruebas tienen diferentes propósitos, diferentes owners, y se ejecutan en diferentes momentos del pipeline.
-ProyectoPropósitoPor qué existe como proyecto separadoui-testsPruebas funcionales de interfazEl 80% de lo que un QA prueba diariamente. Necesitan correr rápido y ser estables.api-testsValidación de endpoints RESTLas APIs cambian independiente de la UI. Separarlas permite detectar si un error es de backend o frontend.e2e-testsFlujos completos de usuarioSimulan el comportamiento real: login → acción → logout. Tardan más, por eso corren menos frecuente.integration-testsInteracción entre componentesVerifica que el formulario se comunique correctamente con la tabla dinámica cuando se agrega un dato.contract-testsValidación de estructura de datosSi la tabla cambia de 3 a 4 columnas sin avisar, este test falla antes de que llegue a producción.performance-testsTiempos de carga y respuestaDetecta si una página que antes cargaba en 2s ahora tarda 10s por un cambio en el código.security-testsValidación de inputs maliciososSQL injection, XSS, inputs excesivamente largos. No soy pen-tester, pero cubro lo básico.accessibility-testsCumplimiento de estándares WCAGLabels en inputs, contraste de colores, navegación por teclado. Muchas empresas lo requieren por ley.visual-testsRegresión visual con snapshotsDetecta si un cambio de CSS rompió el diseño sin que nadie se dé cuenta.
+## ¿Por qué construí esto?
 
-Análisis de casos de prueba por categoría
-UI Tests — "¿La interfaz funciona como debería?"
-Login exitoso (UI001)
+Cuando terminé mi proyecto de API Testing con RestAssured me quedé con una pregunta
+sin responder: ¿cómo se prueban las interfaces de usuario de la misma forma en que
+se prueban las APIs — con organización, propósito claro y sin depender de "funciona
+en mi máquina"?
 
-Qué prueba: Usuario válido puede iniciar sesión
-Por qué importa: Si el login falla, todo lo demás es irrelevante
-Cómo lo pruebo: Verifico que después de login exitoso aparezca el mensaje de bienvenida Y la URL cambie a /dashboard
+La mayoría de tutoriales de Playwright muestran un test de login y ya. Nadie explica
+qué pasa cuando tienes 50 tests, varios flujos y un equipo que necesita entender qué
+prueba cada test y por qué.
 
-Formulario dinámico (UI002)
+Así que me propuse construir un framework con la estructura que tendría en una empresa
+real: Page Objects para separar la lógica de navegación de los tests, fixtures para
+reutilizar el estado de autenticación, 9 tipos de prueba con propósito distinto cada
+uno, y un pipeline en Jenkins + Docker que corre en un entorno limpio en cada ejecución.
 
-Qué prueba: Los campos del formulario se agregan correctamente a la tabla
-Por qué importa: Es el flujo principal de la app
-Cómo lo pruebo: LLeno 3 campos → Submit → Verifico que aparezcan en la tabla con los datos exactos que ingresé
+El proceso no fue limpio. Hubo tests que pasaban en local y fallaban en CI por latencia
+de red. Snapshots visuales que generaban archivos de 50MB si no los organizabas bien.
+El `retries: 2` que aprendí a activar solo en CI porque en local necesitas ver el fallo
+de inmediato, no después de 3 reintentos. Cada uno de esos problemas me enseñó algo
+que no aparece en la documentación oficial.
 
-Manejo de popups (UI003)
+---
 
-Qué prueba: Los alerts nativos del navegador se pueden aceptar/rechazar
-Por qué importa: Muchas apps legacy usan alerts, y Playwright los maneja diferente a Selenium
-Cómo lo pruebo: Escucho el evento dialog, capturo el mensaje, y verifico que la acción se ejecute correctamente
+## Sistema bajo prueba
 
+Un sandbox de Automation Practice con formularios dinámicos, tablas, popups nativos
+del navegador, drag & drop y elementos que cambian de estado. Lo elegí porque tiene
+exactamente los escenarios que un QA enfrenta en aplicaciones web reales — sin la
+complejidad de un sistema de negocio que distrae del aprendizaje.
 
-E2E Tests — "¿El flujo completo funciona de principio a fin?"
-Ciclo completo: Login → Agregar dato → Verificar → Logout (E2E001)
+---
 
-Qué prueba: El happy path completo desde que un usuario entra hasta que sale
-Por qué importa: Refleja el comportamiento real de un usuario
-Cómo lo pruebo:
+## ¿Por qué 9 tipos de prueba y no solo "tests"?
 
-Login con credenciales válidas
-Navego a formulario
-Agrego 2 registros
-Verifico que ambos aparezcan en tabla
-Logout
-Verifico que no pueda acceder a páginas protegidas sin autenticación
+Esta fue la decisión de diseño más importante del proyecto. En empresas reales,
+diferentes tipos de prueba tienen diferentes propósitos, diferentes owners y se
+ejecutan en momentos distintos del pipeline. Mezclarlos en una sola carpeta hace
+imposible saber qué falló y por qué.
 
+| Proyecto | Propósito | Cuándo corre |
+|---|---|---|
+| `ui-tests` | Funcionalidad de interfaz — el 80% del trabajo diario de un QA | Cada commit |
+| `api-tests` | Validación de endpoints REST — independiente de la UI | Cada commit |
+| `e2e-tests` | Flujos completos de usuario de punta a punta | Antes de cada deploy |
+| `integration-tests` | Comunicación entre componentes de la misma página | Cada commit |
+| `contract-tests` | Estructura de datos — si cambia una columna, falla aquí | Cada commit |
+| `performance-tests` | Tiempos de carga y render | Diario o antes de releases |
+| `security-tests` | Inputs maliciosos: SQL injection, XSS | Antes de cada deploy |
+| `accessibility-tests` | Cumplimiento WCAG — requerido por ley en muchos países | Semanal |
+| `visual-tests` | Regresión visual con screenshots | Antes de releases de UI |
 
+---
 
+## Análisis de casos de prueba
 
-Integration Tests — "¿Los componentes se comunican correctamente?"
-Formulario → Tabla dinámica (INT001)
+### UI Tests — "¿La interfaz funciona como debería?"
 
-Qué prueba: Cuando agrego un dato en el formulario, la tabla se actualiza sin recargar la página
-Por qué importa: Si la tabla no se actualiza, es un bug de integración entre componentes
-Cómo lo pruebo:
+**Login exitoso (UI001)**
+El primer test que escribí y el más importante. Si el login falla, todo lo demás
+es irrelevante. Verifico dos cosas: que aparezca el mensaje de bienvenida Y que
+la URL cambie a `/dashboard` — porque un sistema mal implementado podría mostrar
+el mensaje sin redirigir, o redirigir sin mostrar el mensaje.
 
-Cuento cuántas filas tiene la tabla ANTES
-Agrego un registro
-Cuento cuántas filas tiene DESPUÉS
-Verifico que aumentó en exactamente 1
+**Formulario dinámico (UI002)**
+Prueba el flujo principal de la app: llenar 3 campos → Submit → verificar que los
+datos exactos que ingresé aparezcan en la tabla. La trampa aquí es que muchos QAs
+solo verifican que "aparezca algo" en la tabla — yo verifico que los datos sean
+exactamente los que ingresé, en el orden correcto.
 
+**Manejo de popups (UI003)**
+Los alerts nativos del navegador son un caso especial en Playwright — a diferencia
+de Selenium, necesitas escuchar el evento `dialog` antes de que aparezca. Si lo
+haces después, el test falla o se bloquea indefinidamente. Este test me enseñó
+a entender el modelo de eventos asíncrono de Playwright.
 
+---
 
+### E2E Tests — "¿El flujo completo funciona de principio a fin?"
 
-Contract Tests — "¿La estructura de datos cambió sin avisarnos?"
-Estructura de tabla dinámica (CON001)
+**Ciclo completo: Login → Acción → Verificación → Logout (E2E001)**
+El happy path que simula a un usuario real. Lo estructuré en 5 pasos explícitos
+para que cualquier persona —técnica o no— pueda leerlo y entender qué hace:
 
-Qué prueba: La tabla tiene exactamente las columnas esperadas en el orden correcto
-Por qué importa: Si un dev agrega una columna nueva o cambia el orden, los selectores de UI pueden romperse
-Cómo lo pruebo:
+1. Login con credenciales válidas
+2. Navegar al formulario
+3. Agregar 2 registros con datos distintos
+4. Verificar que ambos aparezcan en la tabla
+5. Logout y verificar que las páginas protegidas ya no sean accesibles
 
-typescript  const headers = await page.locator('table thead th').allTextContents();
-  expect(headers).toEqual(['Nombre', 'Apellido', 'Email', 'Acciones']);
+El paso 5 es el que la mayoría omite. Un logout que no invalida la sesión es
+un bug de seguridad real.
 
-Performance Tests — "¿La página carga en tiempo razonable?"
-Tiempo de carga de homepage (PERF001)
+---
 
-Qué prueba: La página principal carga en menos de 3 segundos
-Por qué importa: Google penaliza sitios lentos en SEO, y usuarios abandonan si tarda más de 3s
-Cómo lo pruebo:
+### Contract Tests — "¿La estructura de datos cambió sin avisarnos?"
 
-typescript  const startTime = Date.now();
-  await page.goto('/');
-  const loadTime = Date.now() - startTime;
-  expect(loadTime).toBeLessThan(3000);
-Performance de tabla con 100 filas (PERF002)
+Este es el tipo de test menos obvio cuando empiezas en QA y uno de los más valiosos.
 
-Qué prueba: El render de una tabla grande no bloquea la UI
-Por qué importa: Las tablas mal optimizadas pueden hacer que el navegador se congele
-Cómo lo pruebo: Agrego 100 filas programáticamente y mido el tiempo de render
+```typescript
+const headers = await page.locator('table thead th').allTextContents();
+expect(headers).toEqual(['Nombre', 'Apellido', 'Email', 'Acciones']);
+```
 
+Si un developer agrega una columna nueva o cambia el orden, este test falla
+antes de que llegue a producción. Los tests funcionales probablemente seguirían
+pasando — la tabla "funciona", solo tiene una columna extra inesperada.
 
-Security Tests — "¿El sistema rechaza inputs maliciosos?"
-SQL Injection en formulario (SEC001)
+---
 
-Qué prueba: El sistema sanitiza inputs tipo ' OR '1'='1
-Por qué importa: Es la vulnerabilidad #1 según OWASP
-Cómo lo pruebo: Ingreso el payload, verifico que NO se ejecute como código sino que se muestre como texto
+### Security Tests — "¿El sistema rechaza inputs maliciosos?"
 
-XSS en campos de texto (SEC002)
+No soy especialista en seguridad, pero cubro lo básico que cualquier QA debería
+verificar según OWASP Top 10:
 
-Qué prueba: Scripts como <script>alert('XSS')</script> no se ejecutan
-Por qué importa: Permite robar sesiones de usuarios
-Cómo lo pruebo: Ingreso el payload, verifico que aparezca escapado en la tabla como texto plano
+**SQL Injection (SEC001):** Ingreso `' OR '1'='1` en los campos del formulario
+y verifico que aparezca como texto plano en la tabla, no como un resultado de
+consulta SQL ejecutada.
 
+**XSS (SEC002):** Ingreso `<script>alert('XSS')</script>` y verifico que aparezca
+escapado — que el navegador no ejecute el script. Si el alert aparece, hay
+una vulnerabilidad XSS real.
 
-Accessibility Tests — "¿Usuarios con discapacidad pueden usar la app?"
-Labels en inputs (A11Y001)
+La diferencia entre un test de seguridad básico y uno ausente es enorme.
+La mayoría de brechas de seguridad en aplicaciones web no son ataques sofisticados
+— son vulnerabilidades básicas que nunca se probaron.
 
-Qué prueba: Todos los inputs tienen labels asociados correctamente
-Por qué importa: Los lectores de pantalla no funcionan sin labels
-Cómo lo pruebo: Uso axe-core para escanear la página y detectar violaciones WCAG
+---
 
-Navegación por teclado (A11Y002)
+### Accessibility Tests — "¿Usuarios con discapacidad pueden usar la app?"
 
-Qué prueba: Se puede navegar el formulario completo usando solo Tab y Enter
-Por qué importa: Usuarios con movilidad reducida dependen de esto
-Cómo lo pruebo: Simulo navegación con page.keyboard.press('Tab') y verifico que el foco se mueva correctamente
+Uso `axe-core` para escanear violaciones WCAG automáticamente:
 
+```typescript
+const results = await new AxeBuilder({ page }).analyze();
+expect(results.violations).toHaveLength(0);
+```
 
-Visual Tests — "¿El CSS cambió algo sin querer?"
-Screenshot de homepage (VIS001)
+También pruebo navegación por teclado con `page.keyboard.press('Tab')` —
+verifico que el foco se mueva en orden lógico por todos los campos.
 
-Qué prueba: La página se ve idéntica a la versión aprobada
-Por qué importa: Un cambio en un archivo CSS puede romper el layout en toda la app
-Cómo lo pruebo:
+En muchos países esto no es opcional — la WCAG es un requisito legal para
+sitios del sector público y financiero.
 
-typescript  await expect(page).toHaveScreenshot('homepage.png');
+---
 
-Si hay diferencias, Playwright genera un diff visual automáticamente
+### Visual Tests — "¿El CSS cambió algo sin querer?"
 
+```typescript
+await expect(page).toHaveScreenshot('homepage.png');
+```
 
-Decisiones técnicas que aprendí debuggeando
-Por qué Page Object Model en lugar de tests lineales
-❌ ANTES (test lineal):
-typescripttest('login', async ({ page }) => {
-  await page.goto('/');
-  await page.fill('#username', 'admin');
-  await page.fill('#password', '1234');
-  await page.click('#login-btn');
-  await expect(page.locator('.welcome')).toBeVisible();
-});
-✅ DESPUÉS (Page Object):
-typescripttest('login', async ({ page }) => {
-  const loginPage = new LoginPage(page);
-  await loginPage.login('admin', '1234');
-  await expect(loginPage.welcomeMessage).toBeVisible();
-});
-Ventaja: Si el selector de #username cambia, lo modifico en UN solo lugar (LoginPage) en lugar de en 15 tests diferentes.
+Si hay diferencias con la imagen base aprobada, Playwright genera un diff
+visual automáticamente con las áreas resaltadas. Esto detecta cuando un
+cambio en un archivo CSS rompe el layout en una página que nadie pensó probar.
 
-Por qué fixtures personalizadas en lugar de @BeforeEach
-Playwright permite crear fixtures reutilizables que se inyectan automáticamente:
-typescript// fixtures.ts
+Los snapshots base están en el repo. Los generados en cada test están en
+`.gitignore` — si los subieras todos, el repo crecería a 50MB en una semana.
+
+---
+
+## Decisiones técnicas
+
+**Page Object Model en lugar de tests lineales**
+
+Sin POM, cada vez que el selector de un input cambia hay que buscarlo en
+todos los tests que lo usan. Con POM, se modifica en un solo lugar — la
+clase `LoginPage` o `FormPage` — y todos los tests se actualizan automáticamente.
+
+**Fixtures personalizadas para autenticación**
+
+Playwright permite crear fixtures que se inyectan en los tests:
+
+```typescript
 export const test = base.extend({
   authenticatedPage: async ({ page }, use) => {
     await page.goto('/login');
@@ -166,92 +189,130 @@ export const test = base.extend({
     await use(page);
   },
 });
-Ventaja: Los tests que necesitan login usan authenticatedPage, los que no, usan page normal. Sin lógica condicional en @BeforeEach.
+```
 
-Por qué separé los snapshots en una carpeta dedicada
-Los snapshots visuales generan archivos .png por cada test. Si los dejo en la raíz, el repo crece a 50MB en una semana.
-Solución: Configuré Playwright para guardar snapshots en tests/visual/snapshots/ y lo agregué al .gitignore EXCEPTO los snapshots base (los "golden images" aprobadas).
+Los tests que necesitan sesión iniciada usan `authenticatedPage`.
+Los que no, usan `page`. Sin lógica condicional en `@BeforeEach`.
 
-Por qué retries: 2 solo en CI, no en local
-typescript// playwright.config.ts
+**`retries: 2` solo en CI**
+
+```typescript
 retries: process.env.CI ? 2 : 0
-Razón: En CI, un test puede fallar por latencia de red temporal. En local, si falla es porque algo está mal y quiero verlo inmediatamente, no después de 3 intentos.
+```
 
-Cómo ejecutar
-Requisitos
+En CI, un test puede fallar por latencia de red temporal — el retry lo
+resuelve sin intervención humana. En local, quiero ver el fallo inmediatamente
+en el primer intento, no después de 3.
 
-Node.js 18+
-npm o pnpm
+**Jenkins + Docker en lugar de solo GitHub Actions**
 
-Instalación
-bashgit clone https://github.com/ipanaque94/playwright-professional-framework.git
+GitHub Actions es más simple y es lo que usaría en un proyecto nuevo.
+Elegí Jenkins + Docker aquí deliberadamente para aprender cómo funciona
+el entorno CI/CD que todavía usan muchas empresas con infraestructura propia.
+El `Dockerfile` garantiza que el entorno de Node.js, Playwright y los
+navegadores sea idéntico en cada ejecución — sin el clásico "funciona
+en mi máquina".
+
+---
+
+## Cómo ejecutar
+
+**Requisitos:** Node.js 18+
+
+```bash
+git clone https://github.com/ipanaque94/playwright-professional-framework.git
 cd playwright-professional-framework
 npm install
-npx playwright install  # Descarga navegadores
-Ejecución
-bash# Todos los tests
+npx playwright install
+```
+
+```bash
+# Todos los tests
 npx playwright test
 
-# Solo UI tests
+# Proyecto específico
 npx playwright test --project=ui-tests
-
-# Solo tests de seguridad
 npx playwright test --project=security-tests
+npx playwright test --project=accessibility-tests
+npx playwright test --project=visual-tests
 
-# Modo headed (ver el navegador)
+# Ver el navegador mientras corre
 npx playwright test --headed
 
-# Modo debug (pausa en cada step)
+# Pausar en cada paso para debuggear
 npx playwright test --debug
 
 # Ver reporte HTML
 npx playwright show-report
+```
 
-Pipeline CI/CD (Jenkins + Docker)
-Problema que resuelve: Quería que los tests correran en un entorno limpio, idéntico en cada ejecución, sin depender de "funciona en mi máquina".
-Arquitectura
-Docker Container (Ubuntu 24)
-  ├── Jenkins (puerto 9090)
-  ├── Node.js 18
-  ├── Playwright + Navegadores Chromium
-  └── Workspace: /var/jenkins_home/workspace/playwright-pipeline
-Jenkinsfile
-El pipeline tiene 5 stages:
+---
 
-Checkout: Clona el repo
-Install Dependencies: npm ci (más rápido que npm install)
-Run Tests: npx playwright test --project=$PROJECT
-Generate Report: Convierte resultados JUnit a HTML
-Publish: Sube reporte como artifact
+## Stack
 
-Parámetro dinámico: El Jenkinsfile acepta un parámetro PROJECT que permite ejecutar cualquier proyecto sin cambiar código:
-groovyparameters {
-  choice(name: 'PROJECT', choices: ['all', 'ui-tests', 'e2e-tests', 'security-tests'])
-}
+| Herramienta | Versión | Uso |
+|---|---|---|
+| Playwright | 1.49.0 | Framework de testing E2E con soporte multi-browser |
+| TypeScript | 5.x | Tipado estático para detectar errores antes de ejecutar |
+| Node.js | 18+ | Runtime |
+| axe-core | 4.x | Auditoría de accesibilidad WCAG |
+| Allure | 2.x | Reportes con trazabilidad y categorización |
+| Jenkins | 2.x | CI/CD con pipeline declarativo |
+| Docker | 24.x | Entorno reproducible e independiente del SO |
 
-Stack
-HerramientaVersiónUsoPlaywright1.49.0Framework de testing E2E con soporte nativo para múltiples navegadoresTypeScript5.xTipado estático para detectar errores antes de ejecutarNode.js18+Runtime de JavaScriptJenkins2.xAutomatización de CI/CDDocker24.xContenedores para entorno reproducibleAllure2.xReportes con trazabilidad y categorizaciónaxe-core4.xAuditoría de accesibilidad
+---
 
-Estructura del proyecto
+## Estructura del proyecto
+
+```
 playwright-professional-framework/
 ├── tests/
-│   ├── ui/              # Pruebas funcionales de interfaz
-│   ├── api/             # Pruebas de endpoints REST
-│   ├── e2e/             # Flujos completos de usuario
-│   ├── integration/     # Comunicación entre componentes
-│   ├── contract/        # Validación de estructura de datos
-│   ├── performance/     # Tiempos de carga
-│   ├── security/        # Inputs maliciosos
-│   ├── accessibility/   # Cumplimiento WCAG
-│   └── visual/          # Regresión visual
-├── pages/               # Page Objects
-├── fixtures/            # Configuración reutilizable
-├── playwright.config.ts # Configuración de Playwright
-├── Jenkinsfile          # Pipeline CI/CD
-└── Dockerfile           # Imagen para Jenkins + Playwright
+│   ├── ui/              → Pruebas funcionales de interfaz
+│   ├── api/             → Pruebas de endpoints REST
+│   ├── e2e/             → Flujos completos de usuario
+│   ├── integration/     → Comunicación entre componentes
+│   ├── contract/        → Validación de estructura de datos
+│   ├── performance/     → Tiempos de carga y render
+│   ├── security/        → SQL injection, XSS, inputs maliciosos
+│   ├── accessibility/   → Cumplimiento WCAG con axe-core
+│   └── visual/          → Regresión visual con screenshots
+├── pages/               → Page Objects (un archivo por página)
+├── fixtures/            → Fixtures reutilizables (auth, setup)
+├── config/              → Configuración por entorno
+├── utils/               → Helpers compartidos
+├── playwright.config.ts → Configuración central de Playwright
+├── Jenkinsfile          → Pipeline CI/CD declarativo
+└── Dockerfile.jenkins   → Imagen con Node.js + Playwright + Jenkins
+```
 
-Autor
-Enoc Ipanaque — Lima, Perú
-QA Automation Engineer en formación
-Este proyecto lo construí mientras estudiaba Playwright desde cero y aplicaba conceptos del ISTQB Foundation Level. No es un proyecto perfecto, pero refleja cómo pienso como QA: organizado, documentado, y preparado para escalar.
-🔗 LinkedIn · GitHub
+---
+
+## Qué aprendí que no está en los tutoriales
+
+El `retries: 0` en local es intencional — no quieres que los tests se
+reintenten y oculten fallas reales mientras desarrollas.
+
+Los snapshots visuales necesitan generarse en el mismo SO en el que se
+van a comparar. Un snapshot generado en macOS fallará en el runner Linux
+de CI aunque la página se vea idéntica visualmente.
+
+Playwright recomienda no mezclar `page.waitForTimeout()` con aserciones —
+hace los tests frágiles. La forma correcta es usar `expect(locator).toBeVisible()`
+que espera automáticamente hasta el timeout configurado.
+
+La diferencia entre `page.click()` y `page.locator().click()` no es solo
+sintaxis — `locator` es más robusto porque espera a que el elemento sea
+interactable antes de hacer click.
+
+---
+
+## Autor
+
+**Enoc Ipanaque** — Lima, Perú
+
+QA Automation Engineer en formación. Estudio en paralelo para la certificación
+ISTQB Foundation Level. Este proyecto y el de
+[RestAssured API Testing](https://github.com/ipanaque94/RestAssured3APIS)
+son mi portafolio práctico de lo aprendido.
+
+[LinkedIn](https://linkedin.com/in/tu-perfil) · [GitHub](https://github.com/ipanaque94)
